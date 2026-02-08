@@ -1,0 +1,8 @@
+fastapi 
+sqlalchemy 
+pytest 
+alembic
+asyncpg
+environs
+PyJWT
+passlib
