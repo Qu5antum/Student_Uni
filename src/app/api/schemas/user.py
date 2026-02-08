@@ -6,5 +6,8 @@ class UserCreate(BaseModel):
     name: str
     surname: str
     class_: str
+    faculty_id: int
+    section_id: int
+    course_id: int
 
 

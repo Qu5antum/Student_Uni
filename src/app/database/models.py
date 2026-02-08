@@ -13,6 +13,12 @@ class User(Base):
     name: Mapped[str] = mapped_column(String)
     surname: Mapped[str] = mapped_column(String)
     class_: Mapped[int] = mapped_column(Integer)
+    password: Mapped[str] = mapped_column(String)
+
+    roles: Mapped[list["Role"]] = relationship(
+        secondary="user_roles",
+        back_populates="users"
+    )
 
     faculty_id: Mapped[int] = mapped_column(ForeignKey("faculties.id"))
     section_id: Mapped[int] = mapped_column(ForeignKey("sections.id"))
@@ -21,6 +27,19 @@ class User(Base):
     faculty: Mapped["Faculty"] = relationship(back_populates="users")
     section: Mapped["Section"] = relationship(back_populates="users")
     course: Mapped["Course"] = relationship(back_populates="users")
+
+
+
+class Role(Base):
+    __tablename__ = "roles"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(unique=True)
+
+    users: Mapped[list["User"]] = relationship(
+        secondary="user_roles",
+        back_populates="roles"
+    )
     
 
 
