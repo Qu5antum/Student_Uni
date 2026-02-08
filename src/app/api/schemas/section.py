@@ -1,5 +1,5 @@
 from pydantic import BaseModel
 
 
-class Section(BaseModel):
+class SectionCreate(BaseModel):
     name: str

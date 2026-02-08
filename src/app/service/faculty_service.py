@@ -16,4 +16,14 @@ async def add_new_faculty(session: AsyncSession, faculty: FacultyCreate):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This Faculty already exists."
         )
+    
+    new_faculty = Faculty(
+        name=faculty.name
+    )
+
+    session.add(new_faculty)
+    session.commit(new_faculty)
+    session.refresh(new_faculty)
+
+    return new_faculty
 
