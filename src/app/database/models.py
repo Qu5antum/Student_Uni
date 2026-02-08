@@ -42,7 +42,6 @@ class Role(Base):
     )
     
 
-
 class Faculty(Base):
     __tablename__ = "faculties"
 
