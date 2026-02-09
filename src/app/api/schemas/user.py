@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, EmailStr
 from typing import List
 import string
 
@@ -6,6 +6,7 @@ class StudentCreate(BaseModel):
     student_id: int
     name: str  = Field(min_length=2, max_length=18)
     surname: str = Field(min_length=2, max_length=18)
+    email: EmailStr
     class_: int
     password: str = Field(min_length=7, max_length=15)
     faculty_id: int
@@ -30,6 +31,7 @@ class StudentCreate(BaseModel):
 class PersonelCreate(BaseModel):
     name: str  = Field(min_length=2, max_length=18)
     surname: str = Field(min_length=2, max_length=18)
+    email: EmailStr
     password: str = Field(min_length=7, max_length=15)
     #role: List[str]
 

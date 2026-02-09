@@ -7,3 +7,4 @@ environs
 PyJWT
 passlib
 uvicorn
+pydantic[email]

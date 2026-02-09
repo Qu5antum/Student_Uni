@@ -2,6 +2,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Integer, String, ForeignKey
 import sqlalchemy as sa
 from typing import List, Optional
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
 from .db import Base
 
@@ -17,13 +19,17 @@ user_courses = sa.Table(
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
     name: Mapped[str] = mapped_column(String, nullable=False)
     surname: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String, nullable=False)
 
-    student_id: Mapped[Optional[int]] = mapped_column(Integer, unique=True, nullable=True)
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, unique=True)
     class_: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     faculty_id: Mapped[Optional[int]] = mapped_column(ForeignKey("faculties.id"), nullable=True)

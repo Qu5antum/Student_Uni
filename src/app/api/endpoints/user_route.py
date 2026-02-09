@@ -5,7 +5,6 @@ from src.app.api.schemas.user import PersonelCreate
 from src.app.service.user_service import add_new_personel
 
 
-
 user_route = APIRouter(
     prefix="/user",
     tags=['users']

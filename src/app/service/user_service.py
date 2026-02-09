@@ -55,18 +55,6 @@ async def add_new_personel(
         session: AsyncSession, 
         personel: PersonelCreate
 ):
-    result = await session.execute(
-        select(User).where(User.name == personel.personel_id)
-    )
-
-    existing_personel = result.scalar_one_or_none()
-
-    if existing_personel: 
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A personel with this personel ID already exists."
-        ) 
-    
     role = await session.scalar(
         select(Role).where(Role.name == "ADMIN") 
     )
