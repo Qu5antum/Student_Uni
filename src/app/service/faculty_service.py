@@ -18,8 +18,8 @@ async def add_new_faculty(session: AsyncSession, faculty: FacultyCreate):
         )
     
     new_faculty = Faculty(
-        name=faculty.name
-    )
+        **faculty.model_dump()
+    )   
 
     session.add(new_faculty)
     session.commit(new_faculty)

@@ -5,6 +5,14 @@ from typing import List
 from .db import Base
 
 
+user_courses = sa.Table(
+    "user_courses",
+    Base.metadata,
+    sa.Column("user_id", ForeignKey("users.id"), primary_key=True),
+    sa.Column("course_id", ForeignKey("courses.id"), primary_key=True),
+)
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -22,11 +30,14 @@ class User(Base):
 
     faculty_id: Mapped[int] = mapped_column(ForeignKey("faculties.id"))
     section_id: Mapped[int] = mapped_column(ForeignKey("sections.id"))
-    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
 
     faculty: Mapped["Faculty"] = relationship(back_populates="users")
     section: Mapped["Section"] = relationship(back_populates="users")
-    course: Mapped["Course"] = relationship(back_populates="users")
+
+    courses: Mapped[list["Course"]] = relationship(
+        secondary=user_courses,
+        back_populates="users"
+    )
 
 
 
@@ -90,7 +101,10 @@ class Course(Base):
     )
     section_id: Mapped[int] = mapped_column(ForeignKey("sections.id"))
 
-    users: Mapped[List["User"]] = relationship(back_populates="course")
+    users: Mapped[list["User"]] = relationship(
+        secondary=user_courses,
+        back_populates="courses"
+    )
 
     __table_args__ = (
         sa.UniqueConstraint("name", "section_id"),
