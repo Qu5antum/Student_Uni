@@ -18,9 +18,10 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String)
-    surname: Mapped[str] = mapped_column(String)
-    password: Mapped[str] = mapped_column(String)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    surname: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(String, nullable=False)
 
     student_id: Mapped[Optional[int]] = mapped_column(Integer, unique=True, nullable=True)
     class_: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

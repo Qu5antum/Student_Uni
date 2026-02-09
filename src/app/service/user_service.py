@@ -51,7 +51,7 @@ async def add_new_student(
 
 
 #register new personel
-async def add_new_student(
+async def add_new_personel(
         session: AsyncSession, 
         personel: PersonelCreate
 ):
