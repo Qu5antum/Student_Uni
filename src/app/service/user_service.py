@@ -14,9 +14,11 @@ async def add_new_student(
         session: AsyncSession, 
         user: UserCreate
 ):
-    existing_user = await session.execute(
+    result = await session.execute(
         select(User).where(User.name == user.name)
-    ).scalar_one_or_none()
+    )
+
+    existing_user = result.scalar_one_or_none()
 
     if existing_user: 
         raise HTTPException(
@@ -51,10 +53,11 @@ async def auth_user(
         credents: OAuth2PasswordRequestForm, 
         session: AsyncSession
 ):
-    user = await session.execute(
+    result = await session.execute(
         select(User).where(User.username == credents.username)
-    ).scalar_one_or_none()
-    
+    )
+
+    user = result.scalar_one_or_none()
     
     if not user:
         raise HTTPException(

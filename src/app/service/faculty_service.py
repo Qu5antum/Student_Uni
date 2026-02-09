@@ -7,9 +7,11 @@ from src.app.api.schemas.faculty import FacultyCreate
 
 
 async def add_new_faculty(session: AsyncSession, faculty: FacultyCreate):
-    existing_faculty = await session.execute(
+    result = await session.execute(
         select(Faculty).where(Faculty.name == faculty.name)
-    ).scalar_one_or_none()
+    )
+
+    existing_faculty = result.scalar_one_or_none()
 
     if existing_faculty:
         raise HTTPException(
@@ -22,8 +24,8 @@ async def add_new_faculty(session: AsyncSession, faculty: FacultyCreate):
     )   
 
     session.add(new_faculty)
-    session.commit(new_faculty)
-    session.refresh(new_faculty)
+    await session.commit(new_faculty)
+    await session.refresh(new_faculty)
 
     return new_faculty
 
