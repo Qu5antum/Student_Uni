@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Integer, String, ForeignKey
 import sqlalchemy as sa
-from typing import List
+from typing import List, Optional
+
 from .db import Base
 
 
@@ -17,19 +18,21 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    student_id: Mapped[int] = mapped_column(Integer, unique=True)
     name: Mapped[str] = mapped_column(String)
     surname: Mapped[str] = mapped_column(String)
-    class_: Mapped[int] = mapped_column(Integer)
     password: Mapped[str] = mapped_column(String)
+
+    student_id: Mapped[Optional[int]] = mapped_column(Integer, unique=True, nullable=True)
+    class_: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    faculty_id: Mapped[Optional[int]] = mapped_column(ForeignKey("faculties.id"), nullable=True)
+    section_id: Mapped[Optional[int]] = mapped_column(ForeignKey("sections.id"), nullable=True)
 
     roles: Mapped[list["Role"]] = relationship(
         secondary="user_roles",
         back_populates="users"
     )
 
-    faculty_id: Mapped[int] = mapped_column(ForeignKey("faculties.id"))
-    section_id: Mapped[int] = mapped_column(ForeignKey("sections.id"))
 
     faculty: Mapped["Faculty"] = relationship(back_populates="users")
     section: Mapped["Section"] = relationship(back_populates="users")
