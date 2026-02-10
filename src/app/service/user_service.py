@@ -81,11 +81,11 @@ async def add_new_personel(
 
 # authenticate user 
 async def auth_user(
-        credents: OAuth2PasswordRequestForm, 
-        session: AsyncSession
+        session: AsyncSession,
+        credents: OAuth2PasswordRequestForm
 ):
     result = await session.execute(
-        select(User).where(User.username == credents.username)
+        select(User).where(User.email == credents.username)
     )
 
     user = result.scalar_one_or_none()

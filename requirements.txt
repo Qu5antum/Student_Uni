@@ -10,3 +10,4 @@ passlib
 uvicorn
 pydantic[email]
 argon2_cffi
+python-multipart
