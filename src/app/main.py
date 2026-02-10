@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 import uvicorn, asyncio
 
 from src.app.database.db import init_models
 from src.app.core.config import settings
 from src.app.api.endpoints.user_route import user_route
+from src.app.handlers.exception_handler import validation_exception_handler
 
 
 app = FastAPI(
@@ -12,6 +14,8 @@ app = FastAPI(
     debug=settings.debug,
     docs_url="/docs"
 )
+
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,7 +26,6 @@ app.add_middleware(
 )
 
 app.include_router(user_route)
-
 
 if __name__ == "__main__":
     asyncio.run(init_models())
