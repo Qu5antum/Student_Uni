@@ -3,8 +3,10 @@ sqlalchemy
 pytest 
 alembic
 asyncpg
+psycopg2c
 environs
 PyJWT
 passlib
 uvicorn
 pydantic[email]
+argon2_cffi

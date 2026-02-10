@@ -32,7 +32,7 @@ async def add_new_student(
     if not role:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Student role not found"
+            detail="Role not found"
         )
     
     new_user = User(
@@ -62,7 +62,7 @@ async def add_new_personel(
     if not role:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Student role not found"
+            detail="Role not found"
         )
     
     new_user = User(

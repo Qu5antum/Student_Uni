@@ -15,6 +15,13 @@ user_courses = sa.Table(
     sa.Column("course_id", ForeignKey("courses.id"), primary_key=True),
 )
 
+user_roles = sa.Table(
+    "user_roles",
+    Base.metadata,
+    sa.Column("user_id", ForeignKey("users.id"), primary_key=True),
+    sa.Column("role_id", ForeignKey("roles.id"), primary_key=True),
+)
+
 
 class User(Base):
     __tablename__ = "users"
@@ -36,7 +43,7 @@ class User(Base):
     section_id: Mapped[Optional[int]] = mapped_column(ForeignKey("sections.id"), nullable=True)
 
     roles: Mapped[list["Role"]] = relationship(
-        secondary="user_roles",
+        secondary=user_roles,
         back_populates="users"
     )
 
@@ -58,7 +65,7 @@ class Role(Base):
     name: Mapped[str] = mapped_column(unique=True)
 
     users: Mapped[list["User"]] = relationship(
-        secondary="user_roles",
+        secondary=user_roles,
         back_populates="roles"
     )
     
