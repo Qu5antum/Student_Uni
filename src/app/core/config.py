@@ -7,6 +7,7 @@ class Config:
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: str
     URL_DATABASE: str
+    TEST_URL_DATABASE: str
 
     app_name: str = "Student_Courses"
     debug: bool = True
@@ -22,6 +23,7 @@ def load_config(path: str | None = None) -> Config:
         ALGORITHM=env.str("ALGORITHM"),
         ACCESS_TOKEN_EXPIRE_MINUTES=env.int("ACCESS_TOKEN_EXPIRE_MINUTES"),
         URL_DATABASE = env.str("URL_DATABASE"),
+        TEST_URL_DATABASE = env.str("TEST_URL_DATABASE")
     )
 
 settings = load_config()

@@ -11,3 +11,4 @@ uvicorn
 pydantic[email]
 argon2_cffi
 python-multipart
+httpx

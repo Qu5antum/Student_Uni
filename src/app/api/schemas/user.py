@@ -11,7 +11,6 @@ class StudentCreate(BaseModel):
     password: str = Field(min_length=7, max_length=15)
     faculty_id: int
     section_id: int
-    #role: List[str]
 
     @field_validator("password")
     @classmethod
@@ -33,7 +32,6 @@ class PersonelCreate(BaseModel):
     surname: str = Field(min_length=2, max_length=18)
     email: EmailStr
     password: str = Field(min_length=7, max_length=15)
-    #role: List[str]
 
     @field_validator("password")
     @classmethod
