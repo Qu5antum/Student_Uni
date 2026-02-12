@@ -12,7 +12,7 @@ course_route = APIRouter(
 )
 
 
-course_route("/new_course", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_201_CREATED)
+@course_route.post("/new_course", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_201_CREATED)
 async def new_course(
     course: CourseCreate,
     session: AsyncSession = Depends(get_session)

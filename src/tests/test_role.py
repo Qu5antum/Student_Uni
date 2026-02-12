@@ -1,11 +1,13 @@
 import pytest_asyncio
 from src.app.database.models import Role
+from .conftest import TestingSessionLocal
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def seed_roles(async_db):
+async def seed_roles(async_db_engine):
 
-    admin_role = Role(name="ADMIN")
-    student_role = Role(name="STUDENT")
-
-    async_db.add_all([admin_role, student_role])
-    await async_db.commit()
+    async with TestingSessionLocal() as session:
+        session.add_all([
+            Role(name="ADMIN"),
+            Role(name="STUDENT"),
+        ])
+        await session.commit()

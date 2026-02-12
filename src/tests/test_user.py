@@ -6,10 +6,10 @@ from src.app.database.models import Role
 
 
 @pytest_asyncio.fixture
-async def admin_client(async_client, session):
+async def admin_client(async_client, async_db):
 
 
-    role = await session.scalar(
+    role = await async_db.scalar(
         select(Role).where(Role.name == "ADMIN")
     )
 
@@ -43,9 +43,9 @@ async def admin_client(async_client, session):
     return async_client
 
 @pytest.mark.asyncio
-async def test_admin_can_create_student(admin_client, faculty, section):
+async def test_admin_can_create_student(async_client, faculty, section):
 
-    response = await admin_client.post(
+    response = await async_client.post(
         "/user/register_student",
         json={
             "student_id": 1,
