@@ -1,6 +1,7 @@
 fastapi 
 sqlalchemy 
 pytest 
+pytest-asyncio
 alembic
 asyncpg
 psycopg2c

@@ -1,7 +1,7 @@
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from fastapi import FastAPI
-import pytest, asyncio
+import pytest, asyncio, pytest_asyncio
 from sqlalchemy.orm import sessionmaker
 
 from src.app.core.config import settings
@@ -22,7 +22,7 @@ TestingSessionLocal = sessionmaker(
 )
 
 # drop all database every time when test complete
-@pytest.fixture(scope='session')
+@pytest_asyncio.fixture(scope='session')
 async def async_db_engine():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -32,35 +32,39 @@ async def async_db_engine():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
-# truncate all table to isolate tests
-@pytest.fixture(scope='function')
+@pytest_asyncio.fixture(scope='function')
 async def async_db(async_db_engine):
     async with TestingSessionLocal() as session:
 
         yield session
 
-        await session.rollback()
+        await session.close()
 
 
-@pytest.fixture()
-async def async_client(async_db: AsyncSession):
+@pytest.fixture(scope="session")
+def app_fixture():
+    return app
+
+
+@pytest_asyncio.fixture
+async def async_client(app_fixture, async_db):
+
+    app_fixture.dependency_overrides = {}
 
     async def override_get_db():
         yield async_db
 
-    app.dependency_overrides[get_session] = override_get_db
+    app_fixture.dependency_overrides[get_session] = override_get_db
 
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    transport = ASGITransport(app=app_fixture)
+
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test"
+    ) as client:
         yield client
 
-    app.dependency_overrides.clear()
+    app_fixture.dependency_overrides.clear()
 
-# let test session to know it is running inside event loop
-@pytest.fixture(scope='session')
-def event_loop():
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
-    yield loop
-    loop.close()
 
 
