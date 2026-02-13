@@ -36,7 +36,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String, nullable=False)
 
-    user_id: Mapped[Optional[int]] = mapped_column(Integer, unique=True)
+    student_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, unique=True)
     class_: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     faculty_id: Mapped[Optional[int]] = mapped_column(ForeignKey("faculties.id"), nullable=True)
@@ -46,7 +46,6 @@ class User(Base):
         secondary=user_roles,
         back_populates="users"
     )
-
 
     faculty: Mapped["Faculty"] = relationship(back_populates="users")
     section: Mapped["Section"] = relationship(back_populates="users")

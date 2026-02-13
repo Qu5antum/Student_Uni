@@ -5,14 +5,31 @@ from sqlalchemy import select
 from src.app.security.security import create_jwt_token
 from src.app.security.security_context import check_hashes, hash_password
 from src.app.database.db import AsyncSession
-from src.app.database.models import User, Role
-from src.app.api.schemas.user import StudentCreate, PersonelCreate
+from src.app.database.models import User, Role, Faculty, Section
+from src.app.api.schemas.user import StudentCreate, PersonelCreate, UserCourse
 
 #register new student
 async def add_new_student(
         session: AsyncSession, 
         student: StudentCreate
 ):
+    existing_faculty = await session.get(Faculty, student.faculty_id)
+
+    if not existing_faculty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Faculty by this ID: {student.faculty_id} not found."
+        )
+    
+    existing_section = await session.get(Section, student.section_id)
+
+    if not existing_section:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Section by this ID: {student.section_id} not found."
+        )
+
+
     result = await session.execute(
         select(User).where(User.student_id == student.student_id)
     )
@@ -46,7 +63,7 @@ async def add_new_student(
     await session.commit()
     await session.refresh(new_user)
 
-    return {"message: ", "Registered successfully."}
+    return {"message: ", "Student Registered successfully."}
 
 
 
@@ -105,3 +122,45 @@ async def auth_user(
     token = await create_jwt_token({"sub": str(user.id)})
 
     return {"access_token": token, "token_type": "bearer"}
+
+
+async def get_student_by_info(
+        session: AsyncSession,
+        user: UserCourse
+):
+    if user.student_id:
+        result = await session.execute(
+            select(User).where(
+                User.student_id == user.student_id
+            )
+        )
+
+        existing_student = result.scalar_one_or_none()
+
+        if not existing_student:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Student with this Student ID not exists."
+            )
+        
+        return existing_student
+    
+    elif user.name and user.surname:
+        result = await session.execute(
+            select(User).where(
+                User.name == user.name,
+                User.surname == user.surname
+            )
+        )
+
+        existing_student= result.scalar_one_or_none()
+
+        if not existing_student:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Student with this Student name and surname not exists."
+            )
+        
+        return existing_student
+    
+
