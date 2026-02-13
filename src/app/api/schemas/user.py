@@ -49,13 +49,13 @@ class PersonelCreate(BaseModel):
         return password
     
 
-class UserCourse(BaseModel):
+class StudentCourse(BaseModel):
     student_id: str | None = Field(None, max_length=11)
     name: str | None = Field(None, min_length=2, max_length=50)
     surname: str | None = Field(None, min_length=2, max_length=50)
 
 
-class UserOut(BaseModel):
+class StudentOut(BaseModel):
     id: UUID
     student_id: str
     name: str

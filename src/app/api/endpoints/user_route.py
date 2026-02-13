@@ -1,9 +1,10 @@
 from fastapi import APIRouter, status, Depends
 from fastapi.security import OAuth2PasswordRequestForm
+from typing import List
 
 from src.app.database.db import get_session, AsyncSession
-from src.app.api.schemas.user import PersonelCreate, StudentCreate, UserCourse, UserOut
-from src.app.service.user_service import add_new_personel, add_new_student, auth_user, get_student_by_info
+from src.app.api.schemas.user import PersonelCreate, StudentCreate, StudentCourse, StudentOut
+from src.app.service.user_service import *
 from src.app.api.dependencies.check_role import require_roles
 from src.app.database.models import User
 from src.app.api.dependencies.dependency import get_current_user
@@ -41,13 +42,26 @@ async def login(
 
 @user_route.post(
         "/", 
-        response_model=UserOut, 
+        response_model=StudentOut, 
         dependencies=[Depends(require_roles(["ADMIN"]))], 
-        status_code=status.HTTP_201_CREATED
+        status_code=status.HTTP_200_OK
 )
 async def get_student_info(
-    student: UserCourse,
+    student: StudentCourse,
     session: AsyncSession = Depends(get_session)
 ):
     return await get_student_by_info(session=session, user=student)
+
+@user_route.get(
+        "/", 
+        response_model=List[StudentOut], 
+        dependencies=[Depends(require_roles(["ADMIN"]))], 
+        status_code=status.HTTP_200_OK
+)
+async def get_students_in_faculty_and_section(
+    faculty_id: int,
+    section_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    return await get_all_student_by_section_and_faculty_id(session=session, faculty_id=faculty_id, section_id=section_id)
 

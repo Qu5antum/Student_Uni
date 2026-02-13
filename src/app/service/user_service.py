@@ -6,7 +6,7 @@ from src.app.security.security import create_jwt_token
 from src.app.security.security_context import check_hashes, hash_password
 from src.app.database.db import AsyncSession
 from src.app.database.models import User, Role, Faculty, Section
-from src.app.api.schemas.user import StudentCreate, PersonelCreate, UserCourse
+from src.app.api.schemas.user import StudentCreate, PersonelCreate, StudentCourse
 
 #register new student
 async def add_new_student(
@@ -126,7 +126,7 @@ async def auth_user(
 
 async def get_student_by_info(
         session: AsyncSession,
-        user: UserCourse
+        user: StudentCourse
 ):
     if user.student_id:
         result = await session.execute(
@@ -164,3 +164,36 @@ async def get_student_by_info(
         return existing_student
     
 
+async def get_all_student_by_section_and_faculty_id(
+        session: AsyncSession,
+        faculty_id: int,
+        section_id: int
+):
+    existing_faculty = await session.get(Faculty, faculty_id)
+
+    if not existing_faculty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Faculty by this ID: {faculty_id} not found."
+        )
+    
+    existing_section = await session.get(Section, section_id)
+
+    if not existing_section:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Section by this ID: {section_id} not found."
+        )
+    
+    result = await session.execute(
+        select(User).where(
+            User.faculty_id == faculty_id,
+            User.section_id == section_id
+        )
+    )
+
+    students = result.scalars().all()
+
+    return students 
+    
+    
