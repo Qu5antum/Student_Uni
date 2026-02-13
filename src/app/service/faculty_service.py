@@ -24,8 +24,25 @@ async def add_new_faculty(session: AsyncSession, faculty: FacultyCreate):
     )   
 
     session.add(new_faculty)
-    await session.commit(new_faculty)
+    await session.commit()
     await session.refresh(new_faculty)
 
     return new_faculty
 
+
+async def delete_faculty_by_id(
+        session: AsyncSession,
+        faculty_id: int
+):
+    existing_faculty = await session.get(Faculty, faculty_id)
+    
+    if not existing_faculty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Faculty by this id: {faculty_id} not found."
+        )
+    
+    await session.delete(existing_faculty)
+    await session.commit()
+
+    return {"detail": "Faculty successfully deleted."}

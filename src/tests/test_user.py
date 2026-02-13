@@ -5,13 +5,9 @@ from sqlalchemy import select
 from src.app.database.models import Role
 
 
+
 @pytest_asyncio.fixture
 async def admin_client(async_client, async_db):
-
-
-    role = await async_db.scalar(
-        select(Role).where(Role.name == "ADMIN")
-    )
 
     register_response = await async_client.post(
         "/user/register_personel",
@@ -22,7 +18,7 @@ async def admin_client(async_client, async_db):
         }
     )
 
-    assert register_response.status_code in (201)
+    assert register_response.status_code == 201
 
     login_response = await async_client.post(
         "/user/login",
@@ -43,9 +39,9 @@ async def admin_client(async_client, async_db):
     return async_client
 
 @pytest.mark.asyncio
-async def test_admin_can_create_student(async_client, faculty, section):
+async def test_admin_can_create_student(admin_client, faculty, section):
 
-    response = await async_client.post(
+    response = await admin_client.post(
         "/user/register_student",
         json={
             "student_id": 1,
@@ -64,7 +60,7 @@ async def test_admin_can_create_student(async_client, faculty, section):
 @pytest.mark.asyncio
 async def test_protected_without_token(async_client):
 
-    response = await async_client.get("/procted")
+    response = await async_client.get("/user/protected")
 
     assert response.status_code == 401
 
