@@ -17,7 +17,7 @@ async def add_new_course(
         if not existing_section:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Section not found."
+                detail=f"Section by this ID: {course.section_id} not found."
             )
         
         result = await session.execute(
@@ -51,5 +51,85 @@ async def add_new_course(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Course already exists."
         )
+
+
+async def get_course_by_id(
+        session: AsyncSession,
+        section_id: int,
+        course_id: int | None = None
+):
+    existing_section = await session.get(Section, section_id)
+
+    if not existing_section:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Section by this ID: {section_id} not found."
+        )
+    
+    if not course_id:
+        result = await session.execute(
+            select(Course).where(
+                Course.section_id == section_id
+            )
+        )
+
+        course = result.scalar_one_or_none()
+
+        return course
+
+    elif course_id:
+        result = await session.execute(
+            select(Course).where(
+                Course.id == course_id,
+                Course.section_id == section_id
+            )
+        )
+    
+        existing_course = result.scalar_one_or_none()
+
+        if not existing_course:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Course by this ID: {course_id} not found in this section."
+            )
+        
+        return existing_course
+    
+
+async def delete_course_id(
+        session: AsyncSession,
+        section_id: int,
+        course_id: int
+):
+    existing_section = await session.get(Section, section_id)
+
+    if not existing_section:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Section by this ID: {section_id} not found."
+        )
+    
+    result = await session.execute(
+        select(Course).where(
+            Course.id == course_id,
+            Course.section_id == section_id
+        )
+    )
+
+    existing_course = result.scalar_one_or_none()
+
+    if not existing_course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course by this ID: {course_id} not found in this section."
+        )
+    
+    await session.delete(existing_course)
+    await session.commit()
+
+    return {"detail": "Course successfully deleted."}
+
+
+    
 
 

@@ -53,7 +53,7 @@ async def get_faculy_by_id(
         if not existing_faculty:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Faculty by this id: {faculty_id} not found."
+                detail=f"Faculty by this ID: {faculty_id} not found."
             )
         
         return existing_faculty
@@ -68,7 +68,7 @@ async def delete_faculty_by_id(
     if not existing_faculty:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Faculty by this id: {faculty_id} not found."
+            detail=f"Faculty by this ID: {faculty_id} not found."
         )
     
     await session.delete(existing_faculty)

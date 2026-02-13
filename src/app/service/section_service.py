@@ -63,7 +63,7 @@ async def get_section_by_id(
     if not existing_faculty:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Faculty by this id: {faculty_id} not found."
+            detail=f"Faculty by this ID: {faculty_id} not found."
         )
     
     if not section_id:
@@ -88,7 +88,7 @@ async def get_section_by_id(
         if not existing_section:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Section by this id: {section_id} not found in this faculty."
+                detail=f"Section by this ID: {section_id} not found in this faculty."
             )
         
         return existing_section
@@ -104,7 +104,7 @@ async def delete_section_by_id(
     if not existing_faculty:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Faculty by this id: {faculty_id} not found."
+            detail=f"Faculty by this ID: {faculty_id} not found."
         )
     
     result = await session.execute(
@@ -119,7 +119,7 @@ async def delete_section_by_id(
     if not existing_section:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Section by this id: {section_id} not found in this faculty."
+            detail=f"Section by this ID: {section_id} not found in this faculty."
         )
     
     await session.delete(existing_section)
