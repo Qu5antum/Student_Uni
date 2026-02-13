@@ -30,6 +30,35 @@ async def add_new_faculty(session: AsyncSession, faculty: FacultyCreate):
     return new_faculty
 
 
+async def get_faculy_by_id(
+        session: AsyncSession,
+        faculty_id: int | None = None
+):
+    if not faculty_id:
+        result = await session.execute(
+            select(Faculty)
+        )
+
+        all_facultys = result.scalars().all()
+
+        return all_facultys
+    
+    elif faculty_id:
+        result = await session.execute(
+            select(Faculty).where(Faculty.id == faculty_id)
+        )
+
+        existing_faculty = result.scalar_one_or_none()
+
+        if not existing_faculty:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Faculty by this id: {faculty_id} not found."
+            )
+        
+        return existing_faculty
+
+
 async def delete_faculty_by_id(
         session: AsyncSession,
         faculty_id: int
