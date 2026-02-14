@@ -52,6 +52,7 @@ async def get_student_info(
 ):
     return await get_student_by_info(session=session, user=student)
 
+
 @user_route.get(
         "/", 
         response_model=List[StudentOut], 

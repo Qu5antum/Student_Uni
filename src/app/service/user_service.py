@@ -194,6 +194,5 @@ async def get_all_student_by_section_and_faculty_id(
 
     students = result.scalars().all()
 
-    return students 
-    
+    return students   
     
