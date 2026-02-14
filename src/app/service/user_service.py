@@ -1,7 +1,6 @@
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
-from datetime import datetime
 
 from src.app.security.security import create_jwt_token
 from src.app.security.security_context import check_hashes, hash_password
@@ -232,28 +231,3 @@ async def delete_student_by_student_id(
     return {"detail": "Student successfully deleted."}
 
 
-async def get_course_for_student(
-        session: AsyncSession,
-        student: User
-):
-    month = datetime.now().month
-    if 9 <= month <= 12:
-        semester = "Autumn"
-    elif 1 <= month <= 6:
-        semester = "Spring"
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Course selection is closed."
-        )
-    
-    result_course = await session.execute(
-        select(Course).where(
-            Course.course_class == student.class_,
-            Course.course_semester == semester
-        )
-    )
-    courses = result_course.scalars().all()
-
-    return courses
-    

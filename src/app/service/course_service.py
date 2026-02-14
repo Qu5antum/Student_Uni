@@ -1,12 +1,34 @@
 from fastapi import HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 from typing import List
+from datetime import datetime
 
 from src.app.database.db import AsyncSession
 from src.app.api.schemas.course import CourseCreate
 from src.app.database.models import Course, Section, User
 
+def current_semester():
+    month = datetime.now().month
+    if 9 <= month <= 12 : return "Autumn"
+    elif 1 <= month <= 7: return "Spring"
+    else: return None
+
+def optional_course_max_select(student_class: int, semester: str) -> int:
+    if semester is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Course selection is closed."
+        )
+    
+    if student_class == 2 and semester == "Spring":
+        return 1
+    elif student_class == 4 and semester == "Spring":
+        return 1
+    else:
+        return 3
+    
 
 async def add_new_course(
         session: AsyncSession,
@@ -24,7 +46,8 @@ async def add_new_course(
         result = await session.execute(
             select(Course).where(
                 Course.name == course.name,
-                Course.section_id == course.section_id
+                Course.section_id == course.section_id,
+                Course.course_code == course.course_code
             )
         )
 
@@ -131,6 +154,110 @@ async def delete_course_id(
     return {"detail": "Course successfully deleted."}
 
 
+async def get_course_for_student(
+        session: AsyncSession,
+        student: User
+) -> List[dict]:  
+    semester = current_semester()  
+
+    if semester is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Course selection is closed."
+        )
+    
+    result_course = await session.execute(
+        select(Course).where(
+            Course.course_class == student.class_,
+            Course.course_semester == semester
+        )
+    )
+    courses = result_course.scalars().all()
+
+    return courses
+
+
+async def course_selection_for_student(
+        session: AsyncSession,
+        selected_course_ids: List[int],
+        student: User,
+):
+    # Надо добавить проверку на верность того что студент именно выберает те курсы которые он может выбирвать по семестру и его классу
+    semester = current_semester()  
+
+    if semester is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Course selection is closed."
+        )
+    
+    student_max_option = optional_course_max_select(student_class=student.class_, semester=semester)
+
+    if len(selected_course_ids) > student_max_option:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"You can select only {student_max_option} optional courses."
+        )
+        
+    result_course = await session.execute(
+        select(Course).where(
+            Course.course_class == student.class_,
+            Course.course_semester == semester
+        )
+    )
+    courses = result_course.scalars().all()
+
+    compulsory_courses = [c for c in courses if not c.is_optional]
+    optional_courses = [c for c in courses if c.is_optional]
+
+    for course in compulsory_courses:
+        if course not in student.courses:
+            student.courses.append(course)
+
+    optional_map = {c.id: c for c in optional_courses}
+
+    for course_id in selected_course_ids:
+            if course_id not in optional_map:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid optional course."
+                )
+
+            course = optional_map[course_id]
+
+            if course not in student.courses:
+                student.courses.append(course)
+
+    await session.commit()
+
+    return {"message": "Courses successfully selected."}
+
+
+async def get_student_courses(
+        session: AsyncSession,
+        student: User
+):
+    result = await session.execute(
+        select(User)
+        .where(User.id == student.id)
+        .options(selectinload(User.courses))
+    )
+
+    user = result.scalars().all()
+
+    return user.courses
+
+    
+
+    
+
+
+
+
+
+
+
+    
     
     
 

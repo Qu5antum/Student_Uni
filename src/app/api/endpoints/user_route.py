@@ -5,6 +5,7 @@ from typing import List
 from src.app.database.db import get_session, AsyncSession
 from src.app.api.schemas.user import PersonelCreate, StudentCreate, StudentCourse, StudentOut
 from src.app.service.user_service import *
+from src.app.service.course_service import get_course_for_student, course_selection_for_student
 from src.app.api.dependencies.check_role import require_roles
 from src.app.database.models import User
 from src.app.api.dependencies.dependency import get_current_user
@@ -74,10 +75,19 @@ async def delete_student(
 ):
     return await delete_student_by_student_id(session=session, student_id=student_id)
 
-@user_route.get("/student_course", status_code=status.HTTP_200_OK)
-async def course_select_for_student(
+
+@user_route.get("/student_course", dependencies=[Depends(require_roles(["STUDENT", "ADMIN"]))], status_code=status.HTTP_200_OK)
+async def courses_for_student(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
     return await get_course_for_student(session=session, student=user)
+
+@user_route.post("/student_course_select", dependencies=[Depends(require_roles(["STUDENT", "ADMIN"]))], status_code=status.HTTP_200_OK)
+async def select_course(
+    selected_course_ids: List[int],
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+): 
+    return await course_selection_for_student(session=session, student=user, selected_course_ids=selected_course_ids)
 
