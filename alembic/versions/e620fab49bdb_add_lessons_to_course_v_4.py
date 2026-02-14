@@ -19,13 +19,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 course_table = sa.Table(
     "courses",
-    sa.column("id", sa.Integer),
-    sa.column("name", sa.String),
-    sa.column("course_code", sa.String),
-    sa.column("course_semester", sa.String),
-    sa.column("course_class", sa.Integer),
-    sa.column("is_optional", sa.Boolean),
-    sa.column("section_id", sa.Integer)
+    sa.MetaData(),
+    sa.Column("id", sa.Integer),
+    sa.Column("name", sa.String),
+    sa.Column("course_code", sa.String),
+    sa.Column("course_semester", sa.String),
+    sa.Column("course_class", sa.Integer),
+    sa.Column("is_optional", sa.Boolean),
+    sa.Column("section_id", sa.Integer)
 )
 
 def upgrade() -> None:
@@ -68,7 +69,6 @@ def upgrade() -> None:
             {"name": "Fizik II", "course_code": "FET218", "course_semester": "Spring", "course_class": 2, "section_id": 2, "is_optional": False},
         ]
     )
-
     # ### end Alembic commands ###
 
 
@@ -79,7 +79,7 @@ def downgrade() -> None:
         op.execute("""
             DELETE FROM courses
             WHERE course_code IN (
-                '   ','FEC103','URC113','URC101','URC111','SWE101','EFC113',
+                'FEC101','FEC103','URC113','URC101','URC111','SWE101','EFC113',
                 'EFC102','FEC102','FEC108','SWE102','URC110','URC112','URC114',
                 'CME201','EFC201','EFC203','FEC201','FEC207','SWE201',
                 'EFC202','EFC204','FEC204','FEC206','SWE202','FET212','FET214','FET216','FET218'

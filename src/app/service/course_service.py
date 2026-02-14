@@ -1,10 +1,11 @@
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from typing import List
 
 from src.app.database.db import AsyncSession
 from src.app.api.schemas.course import CourseCreate
-from src.app.database.models import Course, Section
+from src.app.database.models import Course, Section, User
 
 
 async def add_new_course(
@@ -73,7 +74,7 @@ async def get_course_by_id(
             )
         )
 
-        course = result.scalar_one_or_none()
+        course = result.scalars().all()
 
         return course
 
@@ -85,12 +86,12 @@ async def get_course_by_id(
             )
         )
     
-        existing_course = result.scalar_one_or_none()
+        existing_course = result.scalars().all()
 
         if not existing_course:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Course by this ID: {course_id} not found in this section."
+                detail=f"Courses by this ID: {course_id} not found in this section."
             )
         
         return existing_course
@@ -130,8 +131,7 @@ async def delete_course_id(
     return {"detail": "Course successfully deleted."}
 
 
-
-
+    
     
 
 

@@ -43,7 +43,7 @@ async def login(
 @user_route.post(
         "/", 
         response_model=StudentOut, 
-        dependencies=[Depends(require_roles(["ADMIN"]))], 
+        dependencies=[Depends(require_roles(["STUDENT", "ADMIN"]))], 
         status_code=status.HTTP_200_OK
 )
 async def get_student_info(
@@ -65,4 +65,19 @@ async def get_students_in_faculty_and_section(
     session: AsyncSession = Depends(get_session)
 ):
     return await get_all_student_by_section_and_faculty_id(session=session, faculty_id=faculty_id, section_id=section_id)
+
+
+@user_route.delete("/", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+async def delete_student(
+    student_id: str,
+    session: AsyncSession = Depends(get_session)
+):
+    return await delete_student_by_student_id(session=session, student_id=student_id)
+
+@user_route.get("/student_course", status_code=status.HTTP_200_OK)
+async def course_select_for_student(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    return await get_course_for_student(session=session, student=user)
 

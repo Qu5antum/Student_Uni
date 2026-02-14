@@ -4,7 +4,6 @@ from .dependency import get_current_user
 from src.app.database.models import User
 
 
-
 def require_roles(allowed_roles: list[str]):
     async def checker(
         current_user: User = Depends(get_current_user)

@@ -1,11 +1,12 @@
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
+from datetime import datetime
 
 from src.app.security.security import create_jwt_token
 from src.app.security.security_context import check_hashes, hash_password
 from src.app.database.db import AsyncSession
-from src.app.database.models import User, Role, Faculty, Section
+from src.app.database.models import User, Role, Faculty, Section, Course
 from src.app.api.schemas.user import StudentCreate, PersonelCreate, StudentCourse
 
 #register new student
@@ -27,6 +28,12 @@ async def add_new_student(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Section by this ID: {student.section_id} not found."
+        )
+
+    if existing_section.faculty_id != student.faculty_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Section does not belong to this faculty."
         )
 
 
@@ -59,9 +66,13 @@ async def add_new_student(
 
     new_user.roles.append(role)
 
-    session.add(new_user)
-    await session.commit()
-    await session.refresh(new_user)
+    try:
+        session.add(new_user)
+        await session.commit()
+        await session.refresh(new_user)
+    except:
+        await session.rollback()
+        raise
 
     return {"message: ", "Student Registered successfully."}
 
@@ -194,5 +205,55 @@ async def get_all_student_by_section_and_faculty_id(
 
     students = result.scalars().all()
 
-    return students   
+    return students  
+
+
+async def delete_student_by_student_id(
+        session: AsyncSession,
+        student_id: str
+):
+    result = await session.execute(
+        select(User).where(
+            User.student_id == student_id
+        )
+    )
+
+    existing_student = result.scalar_one_or_none()
+
+    if not existing_student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Student by student ID not found."
+        )
+    
+    await session.delete(existing_student)
+    await session.commit()
+
+    return {"detail": "Student successfully deleted."}
+
+
+async def get_course_for_student(
+        session: AsyncSession,
+        student: User
+):
+    month = datetime.now().month
+    if 9 <= month <= 12:
+        semester = "Autumn"
+    elif 1 <= month <= 6:
+        semester = "Spring"
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Course selection is closed."
+        )
+    
+    result_course = await session.execute(
+        select(Course).where(
+            Course.course_class == student.class_,
+            Course.course_semester == semester
+        )
+    )
+    courses = result_course.scalars().all()
+
+    return courses
     

@@ -1,9 +1,10 @@
 from fastapi import APIRouter, status, Depends
 
+from src.app.database.models import User
 from src.app.database.db import get_session, AsyncSession
 from src.app.api.schemas.course import CourseCreate
-from src.app.service.course_service import add_new_course, get_course_by_id, delete_course_id
-from src.app.api.dependencies.check_role import require_roles
+from src.app.service.course_service import *
+from src.app.api.dependencies.check_role import require_roles, get_current_user
 
 
 course_route = APIRouter(
@@ -44,3 +45,6 @@ async def delete_course(
     session: AsyncSession = Depends(get_session)
 ):
     return await delete_course_id(session=session, section_id=section_id, course_id=course_id)
+
+
+

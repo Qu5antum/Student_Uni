@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, String, ForeignKey
+from sqlalchemy import Integer, String, ForeignKey, Boolean
 import sqlalchemy as sa
 from typing import List, Optional
 from sqlalchemy.dialects.postgresql import UUID
@@ -111,6 +111,10 @@ class Course(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    course_code: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    course_semester: Mapped[str] = mapped_column(String, nullable=False)
+    course_class: Mapped[int] = mapped_column(Integer, nullable=False)
+    is_optional: Mapped[bool] = mapped_column(Boolean, default=True)
 
     section: Mapped["Section"] = relationship(
         back_populates="courses"
