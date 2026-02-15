@@ -223,8 +223,8 @@ async def course_selection_for_student(
     )
     courses = result_course.scalars().all()
 
-    compulsory_courses = [c for c in courses if c.is_optional]
-    optional_courses = [c for c in courses if not c.is_optional]
+    compulsory_courses = [c for c in courses if not c.is_optional]
+    optional_courses = [c for c in courses if c.is_optional]
 
     existing_ids = {c.id for c in current_student.courses}
 
