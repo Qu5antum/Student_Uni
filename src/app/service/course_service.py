@@ -5,9 +5,13 @@ from sqlalchemy.exc import IntegrityError
 from typing import List
 from datetime import datetime
 
+import logging
+
 from src.app.database.db import AsyncSession
 from src.app.api.schemas.course import CourseCreate
 from src.app.database.models import Course, Section, User
+
+logger = logging.getLogger(__name__)
 
 def current_semester():
     month = datetime.now().month
@@ -15,7 +19,7 @@ def current_semester():
     elif 1 <= month <= 7: return "Spring"
     else: return None
 
-def optional_course_max_select(student_class: int, semester: str) -> int:
+async def optional_course_max_select(student_class: int, semester: str) -> int:
     if semester is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -179,10 +183,11 @@ async def get_course_for_student(
 
 async def course_selection_for_student(
         session: AsyncSession,
-        selected_course_ids: List[int],
+        student_selected_course_ids: List[int],
         student: User,
 ):
     # Надо добавить проверку на верность того что студент именно выберает те курсы которые он может выбирвать по семестру и его классу
+    selected_course_ids = list(set(student_selected_course_ids))
     semester = current_semester()  
 
     if semester is None:
@@ -191,7 +196,14 @@ async def course_selection_for_student(
             detail="Course selection is closed."
         )
     
-    student_max_option = optional_course_max_select(student_class=student.class_, semester=semester)
+    result = await session.execute(
+        select(User)
+        .where(User.id == student.id)
+        .options(selectinload(User.courses))
+    )
+    current_student = result.scalar_one_or_none()
+    
+    student_max_option = await optional_course_max_select(student_class=current_student.class_, semester=semester)
 
     if len(selected_course_ids) > student_max_option:
         raise HTTPException(
@@ -201,18 +213,23 @@ async def course_selection_for_student(
         
     result_course = await session.execute(
         select(Course).where(
-            Course.course_class == student.class_,
+            Course.course_class == current_student.class_,
             Course.course_semester == semester
         )
     )
     courses = result_course.scalars().all()
 
-    compulsory_courses = [c for c in courses if not c.is_optional]
-    optional_courses = [c for c in courses if c.is_optional]
+    compulsory_courses = [c for c in courses if c.is_optional]
+    optional_courses = [c for c in courses if not c.is_optional]
+
+    existing_ids = {c.id for c in current_student.courses}
+
+    logger.info("Compulsary courses: %s", [c.id for c in compulsory_courses])
 
     for course in compulsory_courses:
-        if course not in student.courses:
-            student.courses.append(course)
+        if course.id not in existing_ids:
+            current_student.courses.append(course)
+            existing_ids.add(course.id)
 
     optional_map = {c.id: c for c in optional_courses}
 
@@ -223,17 +240,20 @@ async def course_selection_for_student(
                     detail="Invalid optional course."
                 )
 
-            course = optional_map[course_id]
-
-            if course not in student.courses:
-                student.courses.append(course)
-
+            if course_id not in existing_ids:
+                current_student.courses.append(optional_map[course_id])
+                existing_ids.add(course_id)
+    
+    await session.flush()
     await session.commit()
 
-    return {"message": "Courses successfully selected."}
+    return {
+        "message": "Courses successfully selected.",
+        "courses": [{"id": c.id, "name": c.name} for c in current_student.courses]
+    }
 
 
-async def get_student_courses(
+async def get_student_courses_(
         session: AsyncSession,
         student: User
 ):
@@ -243,7 +263,7 @@ async def get_student_courses(
         .options(selectinload(User.courses))
     )
 
-    user = result.scalars().all()
+    user = result.scalar_one_or_none()
 
     return user.courses
 

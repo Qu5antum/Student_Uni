@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 import uvicorn, asyncio
 
+import logging
+
 from src.app.database.db import init_models
 from src.app.core.config import settings
 from src.app.handlers.exception_handler import validation_exception_handler
@@ -10,6 +12,9 @@ from src.app.api.endpoints.user_route import user_route
 from src.app.api.endpoints.faculty_route import faculty_route
 from src.app.api.endpoints.section_route import section_route
 from src.app.api.endpoints.course_route import course_route
+
+
+logging.basicConfig(level=logging.INFO)
 
 
 app = FastAPI(
