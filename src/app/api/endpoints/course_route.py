@@ -2,7 +2,7 @@ from fastapi import APIRouter, status, Depends
 
 from src.app.database.models import User
 from src.app.database.db import get_session, AsyncSession
-from src.app.api.schemas.course import CourseCreate
+from src.app.api.schemas.course import CourseCreate, CourseUpdate
 from src.app.service.course_service import *
 from src.app.api.dependencies.check_role import require_roles, get_current_user
 
@@ -36,6 +36,15 @@ async def get_course(
     session: AsyncSession = Depends(get_session)
 ):
     return await get_course_by_id(session=session, section_id=section_id, course_id=course_id)
+
+
+@course_route.put("/{course_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+async def update_course(
+    course_id: int,
+    course_update: CourseUpdate,
+    session: AsyncSession = Depends(get_session)
+):
+    return await update_course_by_id(session=session, course_id=course_id, course_update=course_update)
 
 
 @course_route.delete("/{course_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)

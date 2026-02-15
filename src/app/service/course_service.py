@@ -8,7 +8,7 @@ from datetime import datetime
 import logging
 
 from src.app.database.db import AsyncSession
-from src.app.api.schemas.course import CourseCreate
+from src.app.api.schemas.course import CourseCreate, CourseUpdate
 from src.app.database.models import Course, Section, User
 
 logger = logging.getLogger(__name__)
@@ -71,7 +71,11 @@ async def add_new_course(
         await session.commit()
         await session.refresh(new_course)
 
-        return new_course
+        return {
+            "message": "Courses successfully added.",
+            "Course": new_course
+        }
+
     except IntegrityError:
         await session.rollback()
 
@@ -224,7 +228,6 @@ async def course_selection_for_student(
 
     existing_ids = {c.id for c in current_student.courses}
 
-    logger.info("Compulsary courses: %s", [c.id for c in compulsory_courses])
 
     for course in compulsory_courses:
         if course.id not in existing_ids:
@@ -267,6 +270,43 @@ async def get_student_courses_(
 
     return user.courses
 
+
+async def update_course_by_id(
+        session: AsyncSession,
+        course_id: int,
+        course_update: CourseUpdate
+):
+    existing_course = await session.get(Course, course_id)
+
+    if not existing_course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course by this ID: {course_id} not found."
+        )
+    course_data = course_update.model_dump(exclude_unset=True)
+
+    if "section_id" in course_data:
+        existing_section = await session.get(Section, course_data["section_id"])
+
+        if not existing_section:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Section by this ID: {course_data['section_id']} not found."
+            )
+    
+    for field, value in course_data.items():
+        setattr(existing_course, field, value)
+
+    await session.commit() 
+    await session.refresh(existing_course)
+
+    return {
+        "message": "Courses successfully updated.",
+        "Course": existing_course
+    }
+    
+
+    
     
 
     
