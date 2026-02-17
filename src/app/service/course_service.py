@@ -253,7 +253,7 @@ async def course_selection_for_student(
     return {
         "message": "Courses successfully selected.",
         "courses": [{"id": c.id, "name": c.name} for c in current_student.courses]
-    }
+    }    
 
 
 async def get_student_courses_(
@@ -304,6 +304,56 @@ async def update_course_by_id(
         "message": "Courses successfully updated.",
         "Course": existing_course
     }
+
+
+async def delete_student_courses_by_id(
+        session: AsyncSession,
+        section_id: int | None = None,
+        student_id: str | None = None
+):
+    if not student_id and not section_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Provide student_id or section_id"
+        )
+
+    if student_id:
+        result = await session.execute(
+            select(User)
+            .where(User.student_id == student_id)
+            .options(selectinload(User.courses))
+        )
+        existing_student = result.scalar_one_or_none()
+
+        if not existing_student:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Student by this student ID: {student_id} nof found."
+            )
+        
+        existing_student.courses.clear()
+        await session.commit()
+
+        return {"detail": f"Courses of student by student ID: {student_id} deleted."}
+    
+    if section_id:
+        result = await session.execute(
+            select(User)
+            .where(User.section_id == section_id)
+            .options(selectinload(User.courses))
+        )
+        students = result.scalars().all()
+   
+        for student in students:
+            student.courses.clear()
+
+        await session.commit()
+
+        return {"detail": f"Courses of students in this section ID: {section_id} deleted."}
+    
+    
+
+
     
 
     
