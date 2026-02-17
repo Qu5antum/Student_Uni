@@ -5,7 +5,7 @@ from typing import List
 from src.app.database.db import get_session, AsyncSession
 from src.app.api.schemas.user import PersonelCreate, StudentCreate, StudentCourse, StudentOut
 from src.app.service.user_service import *
-from src.app.service.course_service import get_course_for_student, course_selection_for_student, get_student_courses_, delete_student_courses_by_id
+from src.app.service.course_service import get_course_for_student, course_selection_for_student, get_student_courses_, delete_student_courses_by_id, custom_course_add_for_student
 from src.app.api.dependencies.check_role import require_roles
 from src.app.database.models import User
 from src.app.api.dependencies.dependency import get_current_user
@@ -90,6 +90,14 @@ async def select_course(
     session: AsyncSession = Depends(get_session)
 ): 
     return await course_selection_for_student(session=session, student=user, student_selected_course_ids=selected_course_ids)
+
+@user_route.post("/custom_course_student/{course_ids}", dependencies=[Depends(require_roles(["STUDENT", "ADMIN"]))], status_code=status.HTTP_200_OK)
+async def custom_course_add(
+    student_id: str,
+    course_ids: List[int],
+    session: AsyncSession = Depends(get_session)
+):
+    return await custom_course_add_for_student(session=session, student_id=student_id, course_ids=course_ids)
 
 @user_route.get("/student_course_select_", dependencies=[Depends(require_roles(["STUDENT", "ADMIN"]))], status_code=status.HTTP_200_OK)
 async def get_student_courses(

@@ -255,6 +255,57 @@ async def course_selection_for_student(
         "courses": [{"id": c.id, "name": c.name} for c in current_student.courses]
     }    
 
+async def custom_course_add_for_student(
+        session: AsyncSession,
+        student_id: str,
+        course_ids: List[int]
+):
+    result = await session.execute(
+        select(User)
+        .where(User.student_id == student_id)
+        .options(selectinload(User.courses))
+    )
+    student = result.scalar_one_or_none()
+
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Student by student ID: {student_id} not found."
+        )
+    
+    result = await session.execute(
+        select(Course).where(
+            Course.id.in_(course_ids),
+            Course.course_semester == current_semester()
+        )
+    )
+    courses = result.scalars().all()
+
+    found_ids = {c.id for c in courses}
+    missing_ids = set(course_ids) - found_ids
+
+    if missing_ids:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Courses not found or wrong semester: {list(missing_ids)}"
+        )
+            
+    students_existing_course = {c.id for c in student.courses}
+
+    for course_id in course_ids:
+        if course_id in students_existing_course:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Student already have this course {course_id}"
+            )
+        
+        student.courses.append(students_existing_course[course_id])
+        students_existing_course.add(course_id)
+
+    await session.commit()
+
+    return {"detail": "Courses successfully added to student"}
+
 
 async def get_student_courses_(
         session: AsyncSession,
