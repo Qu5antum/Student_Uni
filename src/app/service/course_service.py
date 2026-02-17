@@ -292,19 +292,19 @@ async def custom_course_add_for_student(
             
     students_existing_course = {c.id for c in student.courses}
 
-    for course_id in course_ids:
-        if course_id in students_existing_course:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Student already have this course {course_id}"
-            )
-        
-        student.courses.append(students_existing_course[course_id])
-        students_existing_course.add(course_id)
+    courses_to_add = [
+        course for course in courses
+        if course.id not in students_existing_course
+    ]
+
+    student.courses.extend(courses_to_add)
 
     await session.commit()
 
-    return {"detail": "Courses successfully added to student"}
+    return {
+        "detail": "Courses successfully added to student",
+        "added_courses": [{"id": c.id, "name": c.name} for c in courses_to_add]
+    }
 
 
 async def get_student_courses_(
