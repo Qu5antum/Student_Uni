@@ -28,11 +28,13 @@ class StudentCreate(BaseModel):
         return password
     
 
-class PersonelCreate(BaseModel):
+class TeacherCreate(BaseModel):
     name: str  = Field(min_length=2, max_length=50)
     surname: str = Field(min_length=2, max_length=50)
     email: EmailStr
     password: str = Field(min_length=7, max_length=15)
+
+    faculty_id: int
 
     @field_validator("password")
     @classmethod
