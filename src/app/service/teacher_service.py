@@ -34,3 +34,4 @@ async def add_new_teacher(
 
     return {"message: ", "Registered successfully."}
 
+

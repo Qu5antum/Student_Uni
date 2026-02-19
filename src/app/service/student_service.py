@@ -1,7 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy import select
 
-
 from src.app.security.security_context import hash_password
 from src.app.database.db import AsyncSession
 from src.app.database.models import User, Role, Faculty, Section
