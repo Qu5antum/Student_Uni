@@ -307,7 +307,7 @@ async def custom_course_add_for_student(
     }
 
 
-async def get_student_courses_(
+async def get_courses_that_student_can(
         session: AsyncSession,
         student: User
 ):
@@ -388,6 +388,14 @@ async def delete_student_courses_by_id(
         return {"detail": f"Courses of student by student ID: {student_id} deleted."}
     
     if section_id:
+        section = await session.get(Section, section_id)
+
+        if not section:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Section by this ID: {section_id} not found."
+            )
+        
         result = await session.execute(
             select(User)
             .where(User.section_id == section_id)
@@ -402,24 +410,23 @@ async def delete_student_courses_by_id(
 
         return {"detail": f"Courses of students in this section ID: {section_id} deleted."}
     
+
+async def get_student_and_courses_by_student_id(
+        session: AsyncSession,
+        student_id: str
+):
+    result = await session.execute(
+        select(User)
+        .where(User.student_id == student_id)
+        .options(selectinload(User.courses))
+    )
+    existing_student = result.scalar_one_or_none()
+
+    if not existing_student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Student by this student ID : {student_id} not found."
+        )
     
-
-
+    return existing_student
     
-
-    
-    
-
-    
-
-
-
-
-
-
-
-    
-    
-    
-
-

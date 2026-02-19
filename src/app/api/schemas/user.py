@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field, field_validator, EmailStr
-from typing import List
 import string
 from uuid import UUID
 

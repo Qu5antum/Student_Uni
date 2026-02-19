@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
-
+from typing import List
+from uuid import UUID
 
 class CourseCreate(BaseModel):
     name: str = Field(min_length=2, max_length=50)
@@ -17,3 +18,31 @@ class CourseUpdate(BaseModel):
     course_class: int | None = Field(None, ge=1, le=7)
     is_optional: bool | None = None
     section_id: int | None = None
+
+
+class CourseOut(BaseModel):
+    id: int
+    name: str
+    course_code: str
+    course_semester: str
+    course_class: int
+    is_optional: bool
+    section_id: int
+
+    class Config:
+        from_attributes = True
+
+class StudentCoursesOut(BaseModel):
+    id: UUID
+    name: str
+    surname: str
+    email: str
+    student_id: str
+    class_: int
+    faculty_id: int
+    section_id: int
+    courses: List[CourseOut]
+
+    class Config:
+        from_attributes = True
+
