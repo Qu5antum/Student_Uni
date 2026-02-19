@@ -46,3 +46,15 @@ class StudentCoursesOut(BaseModel):
     class Config:
         from_attributes = True
 
+
+class TeacherCoursesOut(BaseModel):
+    id : UUID
+    name: str
+    surname: str
+    email: EmailStr
+    faculty_id: int
+    courses: List[CourseOut]
+
+    class Config:
+        from_attributes = True
+

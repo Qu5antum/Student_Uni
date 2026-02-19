@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
+from uuid import UUID
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from src.app.database.db import AsyncSession
 from src.app.database.models import User, Role
@@ -38,7 +38,7 @@ async def add_new_teacher(
 
 async def get_all_teacher(
         session: AsyncSession,
-        teacher_id: int | None = None
+        teacher_id: UUID | None = None
 ):
     if not teacher_id:
         result = await session.execute(
@@ -68,11 +68,4 @@ async def get_all_teacher(
             )
         
         return existing_teacher
-
-
-
-    
-
-
-
 

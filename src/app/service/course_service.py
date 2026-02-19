@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 from typing import List
 from datetime import datetime
+from uuid import UUID
 
 import logging
 
@@ -287,7 +288,7 @@ async def custom_course_add_for_student(
     if missing_ids:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Courses not found or wrong semester: {list(missing_ids)}"
+            detail=f"Courses not found: {list(missing_ids)}"
         )
             
     students_existing_course = {c.id for c in student.courses}
@@ -296,6 +297,9 @@ async def custom_course_add_for_student(
         course for course in courses
         if course.id not in students_existing_course
     ]
+
+    if not courses_to_add:
+        return {"detail": "No new courses to add"}
 
     student.courses.extend(courses_to_add)
 
@@ -362,6 +366,7 @@ async def delete_student_courses_by_id(
         section_id: int | None = None,
         student_id: str | None = None
 ):
+    #Добавить возможнось удалить конкретные уроки 
     if not student_id and not section_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -430,3 +435,111 @@ async def get_student_and_courses_by_student_id(
     
     return existing_student
     
+
+async def add_course_for_teacher_by_teacher_id(
+        session: AsyncSession,
+        teacher_id: int,
+        course_ids: List[int]
+):
+    result = await session.execute(
+        select(User)
+        .where(User.id == teacher_id)
+        .options(selectinload(User.courses))
+    )
+    existing_teacher = result.scalar_one_or_none()
+
+    if not existing_teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Teacher by this ID {teacher_id} not found."
+        )
+    
+    result = await session.execute(
+        select(Course)
+        .where(
+            Course.id.in_(course_ids),
+            Course.course_semester == current_semester()
+        )
+    )
+    courses = result.scalars().all()
+
+    found_ids = {c.id for c in courses}
+    missing_ids = set(course_ids) - found_ids
+
+    if missing_ids:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Courses not found: {list(missing_ids)}"
+        )
+    
+    teachers_existing_course = {c.id for c in existing_teacher.courses}
+
+    courses_to_add = [
+        c for c in courses
+        if c.id not in teachers_existing_course
+    ]
+
+    if not courses_to_add:
+        return {"detail": "No new courses to add"}
+
+    existing_teacher.courses.extend(courses_to_add)
+
+    await session.commit()
+
+    return {
+        "detail": "Courses successfully added to teacher",
+        "added_courses": [{"id": c.id, "name": c.name} for c in courses_to_add]
+    }
+
+
+async def get_courses_of_teacher_by_id(
+        session: AsyncSession,
+        teacher_id: UUID
+):
+    result = await session.execute(
+        select(User)
+        .where(User.id == teacher_id)
+        .options(selectinload(User.courses))
+    )
+    existing_teacher = result.scalar_one_or_none()
+
+    if not existing_teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Teacher by this ID {teacher_id} not found."
+        )
+    
+    return existing_teacher
+
+
+async def delete_courses_of_teacher_by_id(
+        session: AsyncSession,
+        section_id: int | None = None,
+        course_id: int | None = None,
+        teacher_id: UUID | None = None
+):
+    if not course_id and teacher_id:
+        result = await session.execute(
+            select(User)
+            .where(User.id == teacher_id)
+            .options(selectinload(User.courses))
+        )
+        existing_teacher = result.scalar_one_or_none()
+
+        if not existing_teacher:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Teacher by this ID: {teacher_id} not found."
+            )
+ 
+        existing_teacher.courses.clear()
+        await session.commit()
+    
+    
+
+
+
+
+    
+
+          

@@ -40,12 +40,12 @@ async def get_student_info(
 
 
 @student_route.get(
-        "/", 
+        "/admin/faculties/{faculty_id}/sections/{section_id}/students", 
         response_model=List[StudentOut], 
         dependencies=[Depends(require_roles(["ADMIN"]))], 
         status_code=status.HTTP_200_OK
 )
-async def get_students_in_faculty_and_section(
+async def get_students_by_faculty_and_section(
     faculty_id: int,
     section_id: int,
     session: AsyncSession = Depends(get_session)
@@ -53,7 +53,7 @@ async def get_students_in_faculty_and_section(
     return await get_all_student_by_section_and_faculty_id(session=session, faculty_id=faculty_id, section_id=section_id)
 
 
-@student_route.delete("/admin", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@student_route.delete("/admin/{student_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def delete_student(
     student_id: str,
     session: AsyncSession = Depends(get_session)
@@ -76,7 +76,7 @@ async def select_course(
 ): 
     return await course_selection_for_student(session=session, student=user, student_selected_course_ids=selected_course_ids)
 
-@student_route.post("/custom_course_student", dependencies=[Depends(require_roles(["STUDENT", "ADMIN"]))], status_code=status.HTTP_200_OK)
+@student_route.post("/custom_course_student/{student_id}", dependencies=[Depends(require_roles(["STUDENT", "ADMIN"]))], status_code=status.HTTP_200_OK)
 async def custom_course_add(
     student_id: str,
     course_ids: List[int],
@@ -98,7 +98,7 @@ async def delete_student_courses_in_section(
 ):
     return await delete_student_courses_by_id(session=session, section_id=section_id)
 
-@student_route.delete("/admin/delete_student_courses", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@student_route.delete("/admin/delete_student_courses/{student_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def delete_student_courses_by_student_id(
     student_id: str,
     session: AsyncSession = Depends(get_session)
@@ -106,7 +106,7 @@ async def delete_student_courses_by_student_id(
     return await delete_student_courses_by_id(session=session, student_id=student_id)
 
 
-@student_route.get("/admin/student_and_courses", response_model=StudentCoursesOut, dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@student_route.get("/admin/student_and_courses/{student_id}", response_model=StudentCoursesOut, dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def get_student_and_courses(
     student_id: str,
     session: AsyncSession = Depends(get_session)
