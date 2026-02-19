@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import List
 from uuid import UUID
 
@@ -36,7 +36,7 @@ class StudentCoursesOut(BaseModel):
     id: UUID
     name: str
     surname: str
-    email: str
+    email: EmailStr
     student_id: str
     class_: int
     faculty_id: int

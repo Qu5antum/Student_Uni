@@ -70,5 +70,16 @@ class StudentOut(BaseModel):
         from_attributes = True
 
 
+class TeacherOut(BaseModel):
+    id: UUID
+    name: str
+    surname: str
+    email: EmailStr
+    faculty_id: int
+
+    class Config:
+        from_attributes = True
+
+
 
 
