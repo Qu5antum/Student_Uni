@@ -363,47 +363,26 @@ async def update_course_by_id(
 
 async def delete_student_courses_by_id(
         session: AsyncSession,
-        section_id: int | None = None,
-        student_id: str | None = None
+        section_id: int,
+        student_id: str | None = None, 
+        course_id: int | None = None
 ):
-    #Добавить возможнось удалить конкретные уроки 
-    if not student_id and not section_id:
+    section = await session.get(Section, section_id)
+
+    if not section:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Provide student_id or section_id"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Section by this ID: {section_id} not found."
         )
-
-    if student_id:
-        result = await session.execute(
-            select(User)
-            .where(User.student_id == student_id)
-            .options(selectinload(User.courses))
-        )
-        existing_student = result.scalar_one_or_none()
-
-        if not existing_student:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Student by this student ID: {student_id} nof found."
-            )
-        
-        existing_student.courses.clear()
-        await session.commit()
-
-        return {"detail": f"Courses of student by student ID: {student_id} deleted."}
     
-    if section_id:
-        section = await session.get(Section, section_id)
-
-        if not section:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Section by this ID: {section_id} not found."
-            )
-        
+    if student_id is None:
         result = await session.execute(
             select(User)
-            .where(User.section_id == section_id)
+            .join(User.roles)
+            .where(
+                Role.name == "STUDENT",
+                User.section_id == section_id,
+            )
             .options(selectinload(User.courses))
         )
         students = result.scalars().all()
@@ -415,7 +394,51 @@ async def delete_student_courses_by_id(
 
         return {"detail": f"Courses of students in this section ID: {section_id} deleted."}
     
+    result = await session.execute(
+        select(User)
+        .join(User.roles)
+        .where(
+            Role.name == "STUDENT",
+            User.student_id == student_id
+        )
+        .options(selectinload(User.courses))
+    )
+    existing_student = result.scalar_one_or_none()
 
+    if not existing_student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Student not found with ID: {student_id} not found."
+        )
+    
+    if course_id is not None:
+        course_to_remove = next(
+            (c for c in existing_student.courses if c.id == course_id),
+            None
+        )
+
+        if not course_to_remove:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Course {course_id} not found for this teacher."
+            )
+
+        existing_student.courses.remove(course_to_remove) 
+
+        await session.commit()
+
+        return {"detail": f"Course with ID: {course_id} removed from student."}
+
+    if not existing_student.courses:
+        return {"detail": "Student has no courses."}
+    
+    existing_student.courses.clear()
+
+    await session.commit()
+
+    return {"detail": f"All courses of teacher with ID {student_id} deleted."}
+    
+        
 async def get_student_and_courses_by_student_id(
         session: AsyncSession,
         student_id: str
@@ -518,10 +541,22 @@ async def delete_courses_of_teacher_by_id(
         course_id: int | None = None,
         teacher_id: UUID | None = None
 ):
+    section = await session.get(Section, section_id)
+
+    if not section:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Section by this ID: {section_id} not found."
+        )
+    
     if teacher_id is None:
         result = await session.execute(
             select(User)
-            .where(User.section_id == section_id)
+            .join(User.roles)
+            .where(
+                Role.name == "TEACHER",
+                User.section_id == section_id
+            )
             .options(selectinload(User.courses))
         )
         teachers = result.scalars().all()
@@ -547,8 +582,8 @@ async def delete_courses_of_teacher_by_id(
 
     if not existing_teacher:
         raise HTTPException(
-            status_code=404,
-            detail=f"Teacher with ID: {teacher_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Teacher with ID: {teacher_id} not found."
         )
         
     if course_id is not None:
@@ -560,17 +595,17 @@ async def delete_courses_of_teacher_by_id(
         if not course_to_remove:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Course {course_id} not found for this teacher"
+                detail=f"Course {course_id} not found for this teacher."
         )
 
         existing_teacher.courses.remove(course_to_remove) 
 
         await session.commit()
 
-        return {"detail": f"Course with ID: {course_id} removed from teacher"}
+        return {"detail": f"Course with ID: {course_id} removed from teacher."}
     
     if not existing_teacher.courses:
-        return {"detail": "Teacher has no courses"}
+        return {"detail": "Teacher has no courses."}
     
     existing_teacher.courses.clear()
 

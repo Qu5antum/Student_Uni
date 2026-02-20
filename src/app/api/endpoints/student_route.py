@@ -91,22 +91,33 @@ async def get_courses_for_student(
 ):
     return await get_courses_that_student_can(session=session, student=user)
 
-@student_route.delete("/admin/delete_student_courses/{section_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@student_route.delete("/admin/section/{section_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def delete_student_courses_in_section(
     section_id: int,
     session: AsyncSession = Depends(get_session)
 ):
     return await delete_student_courses_by_id(session=session, section_id=section_id)
 
-@student_route.delete("/admin/delete_student_courses/{student_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@student_route.delete("/admin/section/{section_id}/student/{student_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def delete_student_courses_by_student_id(
+    section_id: int,
     student_id: str,
     session: AsyncSession = Depends(get_session)
 ):
-    return await delete_student_courses_by_id(session=session, student_id=student_id)
+    return await delete_student_courses_by_id(session=session, section_id=section_id, student_id=student_id)
 
 
-@student_route.get("/admin/student_and_courses/{student_id}", response_model=StudentCoursesOut, dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@student_route.delete("/admin/section/{section_id}/student/{student_id}/course/{course_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+async def delete_student_courses_by_student_id(
+    section_id: int,
+    student_id: str,
+    course_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    return await delete_student_courses_by_id(session=session, section_id=section_id, student_id=student_id, course_id=course_id)
+
+
+@student_route.get("/admin/student/{student_id}", response_model=StudentCoursesOut, dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def get_student_and_courses(
     student_id: str,
     session: AsyncSession = Depends(get_session)
