@@ -10,7 +10,7 @@ import logging
 
 from src.app.database.db import AsyncSession
 from src.app.api.schemas.course import CourseCreate, CourseUpdate
-from src.app.database.models import Course, Section, User
+from src.app.database.models import Course, Section, User, Role
 
 logger = logging.getLogger(__name__)
 
@@ -514,26 +514,75 @@ async def get_courses_of_teacher_by_id(
 
 async def delete_courses_of_teacher_by_id(
         session: AsyncSession,
-        section_id: int | None = None,
+        section_id: int,
         course_id: int | None = None,
         teacher_id: UUID | None = None
 ):
-    if not course_id and teacher_id:
+    if teacher_id is None:
         result = await session.execute(
             select(User)
-            .where(User.id == teacher_id)
+            .where(User.section_id == section_id)
             .options(selectinload(User.courses))
         )
-        existing_teacher = result.scalar_one_or_none()
+        teachers = result.scalars().all()
+ 
+        for teacher in teachers:
+            teacher.courses.clear()
 
-        if not existing_teacher:
+        await session.commit()
+        
+        return {"detail": f"Courses of teachers in this section ID: {section_id} deleted."}
+    
+    result = await session.execute(
+            select(User)
+            .join(User.roles)
+            .where(
+                User.id == teacher_id,
+                Role.name == "TEACHER"
+            )
+            .options(selectinload(User.courses))
+        )
+    
+    existing_teacher = result.scalar_one_or_none()
+
+    if not existing_teacher:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Teacher with ID: {teacher_id} not found"
+        )
+        
+    if course_id is not None:
+        course_to_remove = next(
+            (c for c in existing_teacher.courses if c.id == course_id),
+            None
+        )
+
+        if not course_to_remove:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Teacher by this ID: {teacher_id} not found."
-            )
- 
-        existing_teacher.courses.clear()
+                detail=f"Course {course_id} not found for this teacher"
+        )
+
+        existing_teacher.courses.remove(course_to_remove) 
+
         await session.commit()
+
+        return {"detail": f"Course with ID: {course_id} removed from teacher"}
+    
+    if not existing_teacher.courses:
+        return {"detail": "Teacher has no courses"}
+    
+    existing_teacher.courses.clear()
+
+    await session.commit()
+
+    return {"detail": f"All courses of teacher with ID {teacher_id} deleted."}
+
+
+
+    
+
+
     
     
 

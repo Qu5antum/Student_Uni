@@ -7,7 +7,7 @@ from src.app.api.dependencies.check_role import require_roles
 from src.app.api.schemas.user import TeacherCreate, TeacherOut
 from src.app.api.schemas.course import TeacherCoursesOut
 from src.app.service.teacher_service import add_new_teacher, get_all_teacher
-from src.app.service.course_service import add_course_for_teacher_by_teacher_id, get_courses_of_teacher_by_id
+from src.app.service.course_service import add_course_for_teacher_by_teacher_id, get_courses_of_teacher_by_id, delete_courses_of_teacher_by_id
 teacher_route = APIRouter(
     prefix="/user/teacher",
     tags=["teachers"]
@@ -51,6 +51,33 @@ async def get_teachers_courses(
     session: AsyncSession = Depends(get_session)
 ):
     return await get_courses_of_teacher_by_id(session=session, teacher_id=teacher_id)
+
+
+@teacher_route.delete("/admin/section/{section_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+async def delete_courses_of_teacher_in_section(
+    section_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    return await delete_courses_of_teacher_by_id(session=session, section_id=section_id)
+
+
+@teacher_route.delete("/admin/section/{section_id}/teacher/{teacher_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+async def delete_courses_of_teacher_in_section_by_teacher_id(
+    section_id: int,
+    teacher_id: UUID,
+    session: AsyncSession = Depends(get_session)
+):
+    return await delete_courses_of_teacher_by_id(session=session, section_id=section_id, teacher_id=teacher_id)
+
+
+@teacher_route.delete("/admin/section/{section_id}/teacher/{teacher_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+async def delete_specific_course_of_teacher_in_section_by_teacher_id(
+    section_id: int,
+    teacher_id: UUID,
+    course_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    return await delete_courses_of_teacher_by_id(session=session, section_id=section_id, teacher_id=teacher_id, course_id=course_id)
 
 
 
