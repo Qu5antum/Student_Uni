@@ -29,7 +29,7 @@ async def new_student(
 @student_route.post(
         "/info", 
         response_model=StudentOut, 
-        dependencies=[Depends(require_roles(["STUDENT", "ADMIN"]))], 
+        dependencies=[Depends(require_roles(["TECHER", "STUDENT", "ADMIN"]))], 
         status_code=status.HTTP_200_OK
 )
 async def get_student_info(
@@ -42,7 +42,7 @@ async def get_student_info(
 @student_route.get(
         "/admin/faculties/{faculty_id}/sections/{section_id}/students", 
         response_model=List[StudentOut], 
-        dependencies=[Depends(require_roles(["ADMIN"]))], 
+        dependencies=[Depends(require_roles(["TEACHER", "ADMIN"]))], 
         status_code=status.HTTP_200_OK
 )
 async def get_students_by_faculty_and_section(

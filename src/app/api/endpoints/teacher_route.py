@@ -6,9 +6,9 @@ from src.app.database.db import AsyncSession, get_session
 from src.app.database.models import User
 from src.app.api.dependencies.dependency import get_current_user
 from src.app.api.dependencies.check_role import require_roles
-from src.app.api.schemas.user import TeacherCreate, TeacherOut
+from src.app.api.schemas.user import TeacherCreate, TeacherOut, StudentOut
 from src.app.api.schemas.course import TeacherCoursesOut, CourseOut
-from src.app.service.teacher_service import add_new_teacher, get_all_teacher, teacher_courses_by_user_id
+from src.app.service.teacher_service import add_new_teacher, get_all_teacher, teacher_courses_by_user_id, list_student_of_courses_by_course_id
 from src.app.service.course_service import add_course_for_teacher_by_teacher_id, get_courses_of_teacher_by_id, delete_courses_of_teacher_by_id
 
 teacher_route = APIRouter(
@@ -89,6 +89,17 @@ async def teacher_courses(
     session: AsyncSession = Depends(get_session)
 ):
     return await teacher_courses_by_user_id(session=session, teacher=user)
+
+
+@teacher_route.get("/teacher/course/{course_id}", response_model=List[StudentOut], dependencies=[Depends(require_roles(["TEACHER", "ADMIN"]))], status_code=status.HTTP_200_OK)
+async def teacher_list_students_of_course(
+    course_id: int,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    return await list_student_of_courses_by_course_id(session=session, course_id=course_id, teacher=user)
+
+
 
 
 

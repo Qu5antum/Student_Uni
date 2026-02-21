@@ -87,6 +87,52 @@ async def teacher_courses_by_user_id(
     teacher = result.scalar_one_or_none()
 
     return teacher.courses
+
+
+async def list_student_of_courses_by_course_id(
+        session: AsyncSession,
+        course_id: int,
+        teacher: User
+):
+    existing_course = await session.get(Course, course_id)
+
+    if not existing_course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course with ID: {course_id} not found."
+        )
+    
+    result = await session.execute(
+        select(User.id)
+        .where(
+            User.id == teacher.id,
+            User.courses.any(Course.id == course_id)
+        )
+    )
+    teacher_exists = result.scalar_one_or_none()
+
+    if not teacher_exists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Teacher does not teach this course with ID {course_id}"
+        )
+
+    
+    result = await session.execute(
+        select(User)
+        .join(User.roles)
+        .where(
+            Role.name == "STUDENT",
+            User.courses.any(Course.id == course_id)
+        ) 
+    )
+    students = result.scalars().unique().all()
+
+    return students
+
+
+    
+
     
 
 
