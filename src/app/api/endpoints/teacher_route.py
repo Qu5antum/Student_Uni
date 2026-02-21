@@ -3,10 +3,12 @@ from typing import List
 from uuid import UUID
 
 from src.app.database.db import AsyncSession, get_session
+from src.app.database.models import User
+from src.app.api.dependencies.dependency import get_current_user
 from src.app.api.dependencies.check_role import require_roles
 from src.app.api.schemas.user import TeacherCreate, TeacherOut
-from src.app.api.schemas.course import TeacherCoursesOut
-from src.app.service.teacher_service import add_new_teacher, get_all_teacher
+from src.app.api.schemas.course import TeacherCoursesOut, CourseOut
+from src.app.service.teacher_service import add_new_teacher, get_all_teacher, teacher_courses_by_user_id
 from src.app.service.course_service import add_course_for_teacher_by_teacher_id, get_courses_of_teacher_by_id, delete_courses_of_teacher_by_id
 
 teacher_route = APIRouter(
@@ -79,6 +81,16 @@ async def delete_specific_course_of_teacher_in_section_by_teacher_id(
     session: AsyncSession = Depends(get_session)
 ):
     return await delete_courses_of_teacher_by_id(session=session, section_id=section_id, teacher_id=teacher_id, course_id=course_id)
+
+
+@teacher_route.get("/teacher/{teacher_id}", response_model=List[CourseOut], dependencies=[Depends(require_roles(["TEACHER", "ADMIN"]))], status_code=status.HTTP_200_OK)
+async def teacher_courses(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    return await teacher_courses_by_user_id(session=session, teacher=user)
+
+
 
 
 

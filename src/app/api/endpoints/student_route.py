@@ -76,7 +76,7 @@ async def select_course(
 ): 
     return await course_selection_for_student(session=session, student=user, student_selected_course_ids=selected_course_ids)
 
-@student_route.post("/custom_course_student/{student_id}", dependencies=[Depends(require_roles(["STUDENT", "ADMIN"]))], status_code=status.HTTP_200_OK)
+@student_route.post("/admin/custom_course_student/{student_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def custom_course_add(
     student_id: str,
     course_ids: List[int],

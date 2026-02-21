@@ -1,9 +1,10 @@
 from fastapi import HTTPException, status
 from uuid import UUID
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from src.app.database.db import AsyncSession
-from src.app.database.models import User, Role
+from src.app.database.models import User, Role, Course
 from src.app.security.security_context import hash_password
 from src.app.api.schemas.user import TeacherCreate
 
@@ -68,4 +69,24 @@ async def get_all_teacher(
             )
         
         return existing_teacher
+    
+
+async def teacher_courses_by_user_id(
+        session: AsyncSession,
+        teacher: User
+):
+    result = await session.execute(
+        select(User)
+        .join(User.roles)
+        .where(
+            User.id == teacher.id,
+            Role.name == "TEACHER"
+        )
+        .options(selectinload(User.courses))
+    )
+    teacher = result.scalar_one_or_none()
+
+    return teacher.courses
+    
+
 

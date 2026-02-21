@@ -6,7 +6,6 @@ from src.app.database.db import get_session, AsyncSession
 from src.app.security.security import get_user_from_token
 from src.app.database.models import User
 
-
 # get currect user
 async def get_current_user(
     user_id: int = Depends(get_user_from_token),
