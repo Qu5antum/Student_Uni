@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, String, ForeignKey, Boolean
+from sqlalchemy import Integer, String, ForeignKey, Boolean, LargeBinary
 import sqlalchemy as sa
 from typing import List, Optional
 from sqlalchemy.dialects.postgresql import UUID
@@ -38,6 +38,8 @@ class User(Base):
 
     student_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, unique=True)
     class_: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    face_encoding: Mapped[LargeBinary] = mapped_column(LargeBinary, nullable=True)
 
     faculty_id: Mapped[Optional[int]] = mapped_column(ForeignKey("faculties.id"), nullable=True)
     section_id: Mapped[Optional[int]] = mapped_column(ForeignKey("sections.id"), nullable=True)

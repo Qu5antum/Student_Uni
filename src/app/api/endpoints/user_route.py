@@ -1,6 +1,5 @@
 from fastapi import APIRouter, status, Depends
 from fastapi.security import OAuth2PasswordRequestForm
-from typing import List
 
 from src.app.database.db import get_session, AsyncSession
 from src.app.service.user_service import auth_user
