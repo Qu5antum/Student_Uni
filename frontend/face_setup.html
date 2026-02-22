@@ -13,7 +13,6 @@
 <script >
     const video = document.getElementById("video");
 
-    // open camera
     navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
             video.srcObject = stream;
@@ -31,24 +30,25 @@
 
         context.drawImage(video, 0, 0);
 
-        const imageData = canvas.toDataURL("image/jpeg");
+        canvas.toBlob(async (blob) => {
 
-        sendToBackend(imageData);
-    }
+            const token = localStorage.getItem("token");
 
-    function sendToBackend(imageData) {
-        fetch("http://127.0.0.1/user/face-login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                image: imageData
-            })
-        })
-        .then(res => res.json())
-        .then(data => console.log(data))
-        .catch(err => console.error(err));
+            const formData = new FormData();
+            formData.append("file", blob, "face.jpg");
+
+            const response = await fetch("http://127.0.0.1:8000/user/register-face", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+            console.log(data);
+
+        }, "image/jpeg");
     }
 </script>
 </body>
