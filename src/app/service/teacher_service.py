@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from src.app.database.db import AsyncSession
-from src.app.database.models import User, Role, Course
+from src.app.database.models import User, Role, Course, Faculty
 from src.app.security.security_context import hash_password
 from src.app.api.schemas.user import TeacherCreate
 
@@ -13,6 +13,14 @@ async def add_new_teacher(
         session: AsyncSession, 
         personel: TeacherCreate
 ):
+    faculty = await session.get(Faculty, personel.faculty_id)
+
+    if not faculty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Faculty with ID: {personel.faculty_id} not found."
+        )
+    
     role = await session.scalar(
         select(Role).where(Role.name == "TEACHER") 
     )
@@ -69,7 +77,29 @@ async def get_all_teacher(
             )
         
         return existing_teacher
+
+
+async def delete_teacher_by_user_id(
+        session: AsyncSession,
+        teacher_id: UUID
+):
+    result = await session.execute(
+        select(User)
+        .where(User.id == teacher_id)       
+    )
+    existing_teacher = result.scalar_one_or_none()
+
+    if not existing_teacher:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Teacher with ID: {teacher_id} not found."
+        )
     
+    await session.delete(existing_teacher)
+    await session.commit()
+
+    return {"detail": f"Teacher with ID: {teacher_id} deleted."}
+
 
 async def teacher_courses_by_user_id(
         session: AsyncSession,

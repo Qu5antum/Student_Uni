@@ -8,7 +8,7 @@ from src.app.api.dependencies.dependency import get_current_user
 from src.app.api.dependencies.check_role import require_roles
 from src.app.api.schemas.user import TeacherCreate, TeacherOut, StudentOut
 from src.app.api.schemas.course import TeacherCoursesOut, CourseOut
-from src.app.service.teacher_service import add_new_teacher, get_all_teacher, teacher_courses_by_user_id, list_student_of_courses_by_course_id
+from src.app.service.teacher_service import add_new_teacher, get_all_teacher, teacher_courses_by_user_id, list_student_of_courses_by_course_id, delete_teacher_by_user_id
 from src.app.service.course_service import add_course_for_teacher_by_teacher_id, get_courses_of_teacher_by_id, delete_courses_of_teacher_by_id
 
 teacher_route = APIRouter(
@@ -37,6 +37,14 @@ async def get_teacher_by_id(
     session: AsyncSession = Depends(get_session)
 ):
     return await get_all_teacher(session=session, teacher_id=teacher_id)
+
+
+@teacher_route.delete("/admin/{teacher_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+async def delete_teacher(
+    teacher_id: UUID,
+    session: AsyncSession = Depends(get_session)
+):
+    return await delete_teacher_by_user_id(session=session, teacher_id=teacher_id)
 
 
 @teacher_route.post("/admin/{teacher_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
