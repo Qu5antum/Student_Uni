@@ -3,9 +3,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from src.app.database.db import get_session, AsyncSession
 from src.app.database.models import User
-from src.app.service.user_service import auth_user
+from src.app.service.user_service import AuthenticationService
 from src.app.api.dependencies.dependency import get_current_user
-from src.app.service.face_setup_service import register_face_for_current_user, recognize_user_by_face
+from src.app.service.face_setup_service import FaceRecognitionService
 
 user_route = APIRouter(
     prefix="/user",
@@ -18,7 +18,8 @@ async def login(
     credents: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_session)
 ):
-    return await auth_user(session=session, credents=credents)
+    authentication_service = AuthenticationService(session=session)
+    return await authentication_service.auth_user(credents=credents)
 
 
 @user_route.post("/register_face/{user_id}", status_code=status.HTTP_200_OK)
@@ -27,7 +28,8 @@ async def register_face(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    return await register_face_for_current_user(session=session, user=user, file=file)
+    face_recognition_service = FaceRecognitionService(session=session)
+    return await face_recognition_service.register_face_for_current_user(user=user, file=file)
 
 
 @user_route.post("/recognize_face", status_code=status.HTTP_200_OK)
@@ -35,4 +37,5 @@ async def recognize_face(
     file: UploadFile = File(...),
     session: AsyncSession = Depends(get_session)
 ):
-    return await recognize_user_by_face(session=session, file=file)
+    face_recognition_service = FaceRecognitionService(session=session)
+    return await face_recognition_service.recognize_user_by_face(file=file)
