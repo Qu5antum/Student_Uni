@@ -569,11 +569,11 @@ class CourseService:
             for teacher in teachers:
                 teacher.courses.clear()
 
-            await session.commit()
+            await self.session.commit()
             
             return {"detail": f"Courses of teachers in this section ID: {section_id} deleted."}
         
-        result = await session.execute(
+        result = await self.session.execute(
                 select(User)
                 .join(User.roles)
                 .where(
@@ -605,7 +605,7 @@ class CourseService:
 
             existing_teacher.courses.remove(course_to_remove) 
 
-            await session.commit()
+            await self.session.commit()
 
             return {"detail": f"Course with ID: {course_id} removed from teacher."}
         
@@ -614,56 +614,7 @@ class CourseService:
         
         existing_teacher.courses.clear()
 
-        await session.commit()
+        await self.session.commit()
 
         return {"detail": f"All courses of teacher with ID {teacher_id} deleted."}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-        
-
-    
-
-
-
-
-
-
-
-
-
-    
-
-
-    
-    
-
-
-
-
-    
-
-          

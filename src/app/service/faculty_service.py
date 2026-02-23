@@ -6,72 +6,76 @@ from src.app.database.models import Faculty
 from src.app.api.schemas.faculty import FacultyCreate
 
 
-async def add_new_faculty(session: AsyncSession, faculty: FacultyCreate):
-    result = await session.execute(
-        select(Faculty).where(Faculty.name == faculty.name)
-    )
+class FacultyService:
+    def __init__(self, session: AsyncSession):
+        self.session = session
 
-    existing_faculty = result.scalar_one_or_none()
-
-    if existing_faculty:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This Faculty already exists."
-        )
-    
-    new_faculty = Faculty(
-        **faculty.model_dump()
-    )   
-
-    session.add(new_faculty)
-    await session.commit()
-    await session.refresh(new_faculty)
-
-    return new_faculty
-
-
-async def get_faculy_by_id(
-        session: AsyncSession,
-        faculty_id: int | None = None
-):
-    if not faculty_id:
-        result = await session.execute(
-            select(Faculty)
-        )
-
-        all_facultys = result.scalars().all()
-
-        return all_facultys
-    
-    elif faculty_id:
-        result = await session.execute(
-            select(Faculty).where(Faculty.id == faculty_id)
+    async def add_new_faculty(self, faculty: FacultyCreate):
+        result = await self.session.execute(
+            select(Faculty).where(Faculty.name == faculty.name)
         )
 
         existing_faculty = result.scalar_one_or_none()
 
+        if existing_faculty:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This Faculty already exists."
+            )
+        
+        new_faculty = Faculty(
+            **faculty.model_dump()
+        )   
+
+        self.session.add(new_faculty)
+        await self.session.commit()
+        await self.session.refresh(new_faculty)
+
+        return new_faculty
+
+
+    async def get_faculy_by_id(
+            self,
+            faculty_id: int | None = None
+    ):
+        if not faculty_id:
+            result = await self.session.execute(
+                select(Faculty)
+            )
+
+            all_facultys = result.scalars().all()
+
+            return all_facultys
+        
+        elif faculty_id:
+            result = await self.session.execute(
+                select(Faculty).where(Faculty.id == faculty_id)
+            )
+
+            existing_faculty = result.scalar_one_or_none()
+
+            if not existing_faculty:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Faculty by this ID: {faculty_id} not found."
+                )
+            
+            return existing_faculty
+
+
+    async def delete_faculty_by_id(
+            self,
+            faculty_id: int
+    ):
+        existing_faculty = await self.session.get(Faculty, faculty_id)
+        
         if not existing_faculty:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Faculty by this ID: {faculty_id} not found."
             )
         
-        return existing_faculty
+        await self.session.delete(existing_faculty)
+        await self.session.commit()
 
-
-async def delete_faculty_by_id(
-        session: AsyncSession,
-        faculty_id: int
-):
-    existing_faculty = await session.get(Faculty, faculty_id)
-    
-    if not existing_faculty:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Faculty by this ID: {faculty_id} not found."
-        )
-    
-    await session.delete(existing_faculty)
-    await session.commit()
-
-    return {"detail": "Faculty successfully deleted."}
+        return {"detail": "Faculty successfully deleted."}
