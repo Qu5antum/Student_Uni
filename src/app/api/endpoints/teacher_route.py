@@ -9,7 +9,7 @@ from src.app.api.dependencies.check_role import require_roles
 from src.app.api.schemas.user import TeacherCreate, TeacherOut, StudentOut
 from src.app.api.schemas.course import TeacherCoursesOut, CourseOut
 from src.app.service.course_service import CourseService
-from src.app.service.teacher_service import add_new_teacher, get_all_teacher, teacher_courses_by_user_id, list_student_of_courses_by_course_id, delete_teacher_by_user_id
+from src.app.service.teacher_service import TeacherService
 
 teacher_route = APIRouter(
     prefix="/user/teacher",
@@ -22,21 +22,24 @@ async def new_personel(
     user: TeacherCreate,
     session: AsyncSession = Depends(get_session)
 ):
-    return await add_new_teacher(session=session, personel=user)
+    teacher_service = TeacherService(session=session)
+    return await teacher_service.add_new_teacher(personel=user)
 
 
 @teacher_route.get("/admin", response_model=List[TeacherOut], dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def get_teacher(
     session: AsyncSession = Depends(get_session)
 ):
-    return await get_all_teacher(session=session)
+    teacher_service = TeacherService(session=session)
+    return await teacher_service.get_all_teacher()
 
 @teacher_route.get("/admin/{teacher_id}", response_model=TeacherOut, dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def get_teacher_by_id(
     teacher_id: UUID,
     session: AsyncSession = Depends(get_session)
 ):
-    return await get_all_teacher(session=session, teacher_id=teacher_id)
+    teacher_service = TeacherService(session=session)
+    return await teacher_service.get_all_teacher(teacher_id=teacher_id)
 
 
 @teacher_route.delete("/admin/{teacher_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -44,7 +47,8 @@ async def delete_teacher(
     teacher_id: UUID,
     session: AsyncSession = Depends(get_session)
 ):
-    return await delete_teacher_by_user_id(session=session, teacher_id=teacher_id)
+    teacher_service = TeacherService(session=session)
+    return await teacher_service.delete_teacher_by_user_id(teacher_id=teacher_id)
 
 
 @teacher_route.post("/admin/{teacher_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -101,7 +105,8 @@ async def teacher_courses(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    return await teacher_courses_by_user_id(session=session, teacher=user)
+    teacher_service = TeacherService(session=session)
+    return await teacher_service.teacher_courses_by_user_id(teacher=user)
 
 
 @teacher_route.get("/teacher/course/{course_id}", response_model=List[StudentOut], dependencies=[Depends(require_roles(["TEACHER", "ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -110,7 +115,8 @@ async def teacher_list_students_of_course(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    return await list_student_of_courses_by_course_id(session=session, course_id=course_id, teacher=user)
+    teacher_service = TeacherService(session=session)
+    return await teacher_service.list_student_of_courses_by_course_id(course_id=course_id, teacher=user)
 
 
 
