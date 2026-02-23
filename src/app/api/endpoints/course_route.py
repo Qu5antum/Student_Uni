@@ -17,7 +17,8 @@ async def new_course(
     course: CourseCreate,
     session: AsyncSession = Depends(get_session)
 ):
-    return await add_new_course(session=session, course=course)
+    course_service = CourseService(session=session)
+    return await course_service.add_new_course(course=course)
 
 
 @course_route.get("admin/section/{section_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -25,7 +26,8 @@ async def get_course(
     section_id: int,
     session: AsyncSession = Depends(get_session)
 ):
-    return await get_course_by_id(session=session, section_id=section_id)
+    course_service = CourseService(session=session)
+    return await course_service.get_course_by_id(section_id=section_id)
     
 
 @course_route.get("/admin/course/{course_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -34,7 +36,8 @@ async def get_course(
     course_id: int,
     session: AsyncSession = Depends(get_session)
 ):
-    return await get_course_by_id(session=session, section_id=section_id, course_id=course_id)
+    course_service = CourseService(session=session)
+    return await course_service.get_course_by_id(section_id=section_id, course_id=course_id)
 
 
 @course_route.get("admin/course/{course_code}", response_model=CourseOut, dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -52,7 +55,8 @@ async def update_course(
     course_update: CourseUpdate,
     session: AsyncSession = Depends(get_session)
 ):
-    return await update_course_by_id(session=session, course_id=course_id, course_update=course_update)
+    course_service = CourseService(session=session)
+    return await course_service.update_course_by_id(course_id=course_id, course_update=course_update)
 
 
 @course_route.delete("/admin/course/{course_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -61,7 +65,8 @@ async def delete_course(
     course_id: int,
     session: AsyncSession = Depends(get_session)
 ):
-    return await delete_course_id(session=session, section_id=section_id, course_id=course_id)
+    course_service = CourseService(session=session)
+    return await course_service.delete_course_id(session=session, section_id=section_id, course_id=course_id)
 
 
 
