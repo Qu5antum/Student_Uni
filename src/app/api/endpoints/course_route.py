@@ -1,11 +1,10 @@
 from fastapi import APIRouter, status, Depends
 
-from src.app.database.models import User
 from src.app.database.db import get_session, AsyncSession
-from src.app.api.schemas.course import CourseCreate, CourseUpdate
+from src.app.api.schemas.course import CourseCreate, CourseUpdate, CourseOut
+from src.app.service.course_service import CourseService
 from src.app.service.course_service import *
-from src.app.api.dependencies.check_role import require_roles, get_current_user
-
+from src.app.api.dependencies.check_role import require_roles
 
 course_route = APIRouter(
     prefix="/course",
@@ -13,7 +12,7 @@ course_route = APIRouter(
 )
 
 
-@course_route.post("/new_course", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_201_CREATED)
+@course_route.post("admin/new_course", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_201_CREATED)
 async def new_course(
     course: CourseCreate,
     session: AsyncSession = Depends(get_session)
@@ -21,7 +20,7 @@ async def new_course(
     return await add_new_course(session=session, course=course)
 
 
-@course_route.get("/", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@course_route.get("admin/section/{section_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def get_course(
     section_id: int,
     session: AsyncSession = Depends(get_session)
@@ -29,7 +28,7 @@ async def get_course(
     return await get_course_by_id(session=session, section_id=section_id)
     
 
-@course_route.get("/{course_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@course_route.get("/admin/course/{course_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def get_course(
     section_id: int,
     course_id: int,
@@ -38,7 +37,16 @@ async def get_course(
     return await get_course_by_id(session=session, section_id=section_id, course_id=course_id)
 
 
-@course_route.put("/{course_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@course_route.get("admin/course/{course_code}", response_model=CourseOut, dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+async def get_course_by_code(
+    course_code: str,
+    session: AsyncSession = Depends(get_session)
+):
+    course_service = CourseService(session=session)
+    return await course_service.get_course_by_course_code(course_code=course_code)
+
+
+@course_route.put("/admin/course/{course_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def update_course(
     course_id: int,
     course_update: CourseUpdate,
@@ -47,7 +55,7 @@ async def update_course(
     return await update_course_by_id(session=session, course_id=course_id, course_update=course_update)
 
 
-@course_route.delete("/{course_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@course_route.delete("/admin/course/{course_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def delete_course(
     section_id: int,
     course_id: int,

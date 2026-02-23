@@ -35,6 +35,25 @@ async def optional_course_max_select(student_class: int, semester: str) -> int:
         return 3
     
 
+class CourseService:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def get_course_by_course_code(self, course_code: str) -> Course:
+        result = await self.session.execute(
+            select(Course)
+            .where(Course.course_code == course_code)
+        )
+        existing_course = result.scalar_one_or_none()
+
+        if not existing_course:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Course with code: {course_code} not found."
+            )
+        
+        return existing_course
+
 async def add_new_course(
         session: AsyncSession,
         course: CourseCreate
@@ -126,7 +145,7 @@ async def get_course_by_id(
                 detail=f"Courses by this ID: {course_id} not found in this section."
             )
         
-        return existing_course
+        return existing_course  
     
 
 async def delete_course_id(
