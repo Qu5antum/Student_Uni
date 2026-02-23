@@ -17,7 +17,7 @@ async def new_section(
     session: AsyncSession = Depends(get_session)
 ):
     section_service = SectionService(session=session)
-    return await section_service.add_new_section(session=session, section=section)
+    return await section_service.add_new_section(section=section)
 
 
 @section_route.get("/", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -26,7 +26,7 @@ async def get_section(
     session: AsyncSession = Depends(get_session)
 ):
     section_service = SectionService(session=session)
-    return await section_service.get_section_by_id(session=session, faculty_id=faculty_id)
+    return await section_service.get_section_by_id(faculty_id=faculty_id)
 
 
 @section_route.get("/{section_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -36,7 +36,7 @@ async def get_section(
     session: AsyncSession = Depends(get_session)
 ):
     section_service = SectionService(session=session)
-    return await section_service.get_section_by_id(session=session, faculty_id=faculty_id, section_id=section_id)
+    return await section_service.get_section_by_id(faculty_id=faculty_id, section_id=section_id)
 
 
 @section_route.delete("/{section}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -46,4 +46,4 @@ async def delete_section(
     session: AsyncSession = Depends(get_session)
 ):
     section_service = SectionService(session=session)
-    return await section_service.delete_section_by_id(session=session, faculty_id=faculty_id, section_id=section_id)
+    return await section_service.delete_section_by_id(faculty_id=faculty_id, section_id=section_id)

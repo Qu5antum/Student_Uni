@@ -12,7 +12,7 @@ faculty_route = APIRouter(
 )
 
 
-@faculty_route.post("/new_faculty", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_201_CREATED)
+@faculty_route.post("admin/new_faculty", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_201_CREATED)
 async def new_faculty(
     faculty: FacultyCreate,
     session: AsyncSession = Depends(get_session)
@@ -21,29 +21,29 @@ async def new_faculty(
     return await faculty_service.add_new_faculty(session=session, faculty=faculty)
 
 
-@faculty_route.get("/", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@faculty_route.get("admin/", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def get_faculty(
     session: AsyncSession = Depends(get_session)
 ):
     faculty_service = FacultyService(session=session)
-    return await faculty_service.get_faculy_by_id(session=session)
+    return await faculty_service.get_faculy_by_id()
 
 
-@faculty_route.get("{faculty_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@faculty_route.get("/admin/{faculty_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def get_faculty(
     faculty_id: int,
     session: AsyncSession = Depends(get_session)
 ):
     faculty_service = FacultyService(session=session)
-    return await faculty_service.get_faculy_by_id(session=session, faculty_id=faculty_id)
+    return await faculty_service.get_faculy_by_id(faculty_id=faculty_id)
 
 
-@faculty_route.delete("/{faculty_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@faculty_route.delete("/admin/{faculty_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def delete_faculty(
     faculty_id: int,
     session: AsyncSession = Depends(get_session)
 ):
     faculty_service = FacultyService(session=session)
-    return await faculty_service.delete_faculty_by_id(session=session, faculty_id=faculty_id)
+    return await faculty_service.delete_faculty_by_id(faculty_id=faculty_id)
 
 
