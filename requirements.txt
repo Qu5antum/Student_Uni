@@ -14,3 +14,4 @@ argon2_cffi
 python-multipart
 httpx
 face_recognition
+slowapi

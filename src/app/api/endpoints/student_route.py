@@ -22,7 +22,7 @@ async def new_student(
     session: AsyncSession = Depends(get_session)
 ):
     student_service = StudentService(session=session)
-    return await student_service.add_new_student(session=session, student=user)
+    return await student_service.add_new_student(student=user)
 
 
 @student_route.post(
@@ -36,7 +36,7 @@ async def get_student_info(
     session: AsyncSession = Depends(get_session)
 ):
     student_service = StudentService(session=session)
-    return await student_service.get_student_by_info(session=session, user=student)
+    return await student_service.get_student_by_info(user=student)
 
 
 @student_route.get(
