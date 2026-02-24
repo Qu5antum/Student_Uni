@@ -4,6 +4,7 @@ from PIL import Image
 import io
 from fastapi import UploadFile, HTTPException, status
 from sqlalchemy import select
+from uuid import UUID
 
 from src.app.database.db import AsyncSession
 from src.app.database.models import User
@@ -93,6 +94,30 @@ class FaceRecognitionService:
             status_code=status.HTTP_401_UNAUTHORIZED, 
             detail="Face not recognized."
         )
+    
+    async def delete_face_from_db(
+            self,
+            user: User,
+            user_id: UUID | None = None
+    ):
+        target_user_id = user.id or user_id
+
+        result = await self.session.execute(
+            select(User).where(User.id == target_user_id)
+        )
+        existing_user = result.scalar_one_or_none()
+
+        if not existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User not found."
+            )
+        
+        user.face_encoding = None
+
+        await self.session.commit()
+
+        return {"detail": "Photo deleted."}
 
 
 
