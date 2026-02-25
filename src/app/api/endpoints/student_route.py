@@ -38,6 +38,13 @@ async def get_student_info(
     student_service = StudentService(session=session)
     return await student_service.get_student_by_info(user=student)
 
+@student_route.get("/admin", response_model=List[StudentOut], dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+async def get_students(
+    session: AsyncSession = Depends(get_session)
+):
+    student_service = StudentService(session=session)
+    return await student_service.get_all_students()
+
 
 @student_route.get(
         "/admin/faculties/{faculty_id}/sections/{section_id}/students", 

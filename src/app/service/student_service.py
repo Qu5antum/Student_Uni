@@ -78,6 +78,15 @@ class StudentService:
 
         return {"message: ", "Student Registered successfully."}
 
+    async def get_all_students(self):
+        result = await self.session.execute(
+            select(User)
+            .join(User.roles)
+            .where(Role.name == "STUDENT")
+        )
+        students = result.scalars().all()
+
+        return students
 
     async def get_student_by_info(
             self,

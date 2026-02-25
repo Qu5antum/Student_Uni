@@ -97,27 +97,37 @@ class FaceRecognitionService:
     
     async def delete_face_from_db(
             self,
-            user: User,
+            user: User | None = None,
             user_id: UUID | None = None
     ):
-        target_user_id = user.id or user_id
-
-        result = await self.session.execute(
-            select(User).where(User.id == target_user_id)
-        )
-        existing_user = result.scalar_one_or_none()
-
-        if not existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User not found."
+        if not user:
+            result = await self.session.execute(
+                select(User).where(User.id == user_id)
             )
+            existing_user = result.scalar_one_or_none()
+
+            if not existing_user:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"User not found."
+                )
+            
+            existing_user.face_encoding = None
+
+            await self.session.commit()
+
+            return {"detail": f"User with ID: {user_id} Photo deleted."}
         
-        user.face_encoding = None
+        if not user_id:    
+            existing_user.face_encoding = None
 
-        await self.session.commit()
+            await self.session.commit()
 
-        return {"detail": "Photo deleted."}
+            return {"detail": "Photo deleted."}
+
+
+
+        
 
 
 

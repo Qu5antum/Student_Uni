@@ -203,7 +203,6 @@ class CourseService:
             student_selected_course_ids: List[int],
             student: User,
     ):
-        # Надо добавить проверку на верность того что студент именно выберает те курсы которые он может выбирвать по семестру и его классу
         selected_course_ids = list(set(student_selected_course_ids))
         semester = current_semester()  
 
@@ -215,7 +214,10 @@ class CourseService:
         
         result = await self.session.execute(
             select(User)
-            .where(User.id == student.id)
+            .join(User.courses)
+            .where(
+                User.id == student.id,
+            )
             .options(selectinload(User.courses))
         )
         current_student = result.scalar_one_or_none()
