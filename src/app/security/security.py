@@ -4,7 +4,7 @@ from src.app.core.config import settings
 import jwt, datetime
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/user/login")
 
 async def create_jwt_token(data):
     to_encode = data.copy()

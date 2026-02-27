@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 from typing import List
@@ -619,4 +619,22 @@ class CourseService:
         await self.session.commit()
 
         return {"detail": f"All courses of teacher with ID {teacher_id} deleted."}
+
+        
+    async def numbers_of_student_of_current_course(
+            self,
+            course_id: int,
+    ):
+        result = await self.session.execute(
+            select(func.count(func.distinct(User.id)))
+            .join(User.roles)
+            .join(User.courses)
+            .where(
+                Course.id == course_id,
+                Role.name == "STUDENT"
+            )
+        )
+        student_count = result.scalar_one()
+
+        return student_count
 

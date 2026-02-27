@@ -7,7 +7,7 @@ from src.app.api.dependencies.check_role import require_roles
 
 
 faculty_route = APIRouter(
-    prefix="/faculty",
+    prefix="/api/faculty",
     tags=['facultys']
 )
 

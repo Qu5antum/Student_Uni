@@ -12,7 +12,7 @@ from src.app.service.course_service import CourseService
 from src.app.service.teacher_service import TeacherService
 
 teacher_route = APIRouter(
-    prefix="/user/teacher",
+    prefix="/api/user/teacher",
     tags=["teachers"]
 )
 

@@ -11,7 +11,7 @@ from src.app.service.student_service import StudentService
 from src.app.service.course_service import CourseService
 
 student_route = APIRouter(
-    prefix="/user/student",
+    prefix="/api/user/student",
     tags=["students"]
 )
 

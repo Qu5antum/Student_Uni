@@ -7,7 +7,7 @@ from src.app.service.course_service import *
 from src.app.api.dependencies.check_role import require_roles
 
 course_route = APIRouter(
-    prefix="/course",
+    prefix="/api/course",
     tags=['courses']
 )
 
@@ -67,6 +67,15 @@ async def delete_course(
 ):
     course_service = CourseService(session=session)
     return await course_service.delete_course_id(session=session, section_id=section_id, course_id=course_id)
+
+
+@course_route.get("/admin/course/students/{course_id}", dependencies=[Depends(require_roles(["TEACHER", "ADMIN"]))], status_code=status.HTTP_200_OK)
+async def get_student_numbers_of_course(
+    course_id: int,
+    session: AsyncSession = Depends(get_session)
+):
+    course_service = CourseService(session=session)
+    return await course_service.numbers_of_student_of_current_course(course_id=course_id)
 
 
 

@@ -6,7 +6,7 @@ from src.app.service.section_service import SectionService
 from src.app.api.dependencies.check_role import require_roles
 
 section_route = APIRouter(
-    prefix="/faculty/{faculty_id}/section",
+    prefix="/api/faculty/{faculty_id}/section",
     tags=['sections']
 )
 

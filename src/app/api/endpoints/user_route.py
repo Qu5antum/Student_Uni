@@ -15,7 +15,7 @@ from src.app.service.face_setup_service import FaceRecognitionService
 limiter = Limiter(key_func=get_remote_address)
 
 user_route = APIRouter(
-    prefix="/user",
+    prefix="/api/user",
     tags=['users']
 )
 
