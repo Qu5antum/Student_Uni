@@ -56,6 +56,7 @@ class StudentCourse(BaseModel):
     surname: str | None = Field(None, min_length=2, max_length=50)
 
 
+
 class StudentOut(BaseModel):
     id: UUID
     student_id: str
@@ -79,7 +80,4 @@ class TeacherOut(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-
 

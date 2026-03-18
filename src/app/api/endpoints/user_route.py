@@ -73,4 +73,3 @@ async def delete_face_photo_by_user_id(
 ):
     face_recognition_service = FaceRecognitionService(session=session)
     return await face_recognition_service.delete_face_from_db(user=user)
-

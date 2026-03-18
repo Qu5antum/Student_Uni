@@ -140,6 +140,15 @@ async def get_student_and_courses(
 ):
     course_service = CourseService(session=session)
     return await course_service.get_student_and_courses_by_student_id(student_id=student_id)
+
+@student_route.get("/profile/{user_id}", dependencies=[Depends(require_roles(["STUDENT"]))], status_code=status.HTTP_200_OK)
+async def user_profile(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    user_service = StudentService(session=session)
+    return await user_service.get_student_profile(user=user)
+
     
 
 

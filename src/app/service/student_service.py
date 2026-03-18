@@ -5,11 +5,13 @@ from src.app.security.security_context import hash_password
 from src.app.database.db import AsyncSession
 from src.app.database.models import User, Role, Faculty, Section
 from src.app.api.schemas.user import StudentCreate, StudentCourse
+from src.app.repositories.user_repository import UserRepository
 
 
 class StudentService:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.user_repo = UserRepository(session=self.session)
 
     #register new student
     async def add_new_student(
@@ -183,3 +185,14 @@ class StudentService:
         await self.session.commit()
 
         return {"detail": "Student successfully deleted."}
+    
+    async def get_student_profile(self, user: User):
+        existing_student = await self.user_repo.get_student_profile(user_id=user.id)
+
+        if not existing_student:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Student not found."
+            )
+        
+        return existing_student
