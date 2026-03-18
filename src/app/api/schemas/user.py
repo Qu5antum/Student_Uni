@@ -81,3 +81,23 @@ class TeacherOut(BaseModel):
     class Config:
         from_attributes = True
 
+    
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str = Field(min_length=7, max_length=15)
+    new_password_again: str
+
+    @field_validator("new_password")
+    @classmethod
+    def check_password(cls, new_password: str) -> str:
+        if not any(i.islower() for i in new_password):
+            raise ValueError("Password must contain at least one small letter")
+        if not any(i.isupper() for i in new_password):
+            raise ValueError("Password must contain at least one capital letter")
+        if not any(i.isdigit() for i in new_password):
+            raise ValueError("Password must contain at least one digit")
+        if not any(i in string.punctuation for i in new_password):
+            raise ValueError("Password must contain at least one punctuation")
+        
+        return new_password
+

@@ -11,6 +11,7 @@ from src.app.service.user_service import AuthenticationService
 from src.app.api.dependencies.dependency import get_current_user
 from src.app.api.dependencies.check_role import require_roles
 from src.app.service.face_setup_service import FaceRecognitionService
+from src.app.api.schemas.user import ChangePasswordRequest
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -28,6 +29,18 @@ async def login(
 ):
     authentication_service = AuthenticationService(session=session)
     return await authentication_service.auth_user(credents=credents)
+
+
+@user_route.put("/change_password", dependencies=[Depends(require_roles(["TEACHER", "STUDENT", "ADMIN"]))], status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
+async def change_password(
+    request: Request,
+    data: ChangePasswordRequest,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    user_service = AuthenticationService(session=session)
+    return await user_service.change_password(data=data, user=user)
 
 
 @user_route.post("/register_face/{user_id}", status_code=status.HTTP_200_OK)

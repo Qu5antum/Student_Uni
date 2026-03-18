@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from sqlalchemy import select
 
 from src.app.database.db import AsyncSession
 
@@ -18,3 +19,10 @@ class BaseRepository(AbstractRepository):
         obj = await self.session.get(self.model, id)
 
         return obj
+    
+    async def get_obj_by_id(self, id: int):
+        result = await self.session.execute(
+            select(self.model).where(self.model.id == id)
+        )
+
+        return result.scalar_one_or_none()
