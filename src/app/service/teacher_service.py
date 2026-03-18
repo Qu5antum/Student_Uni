@@ -7,11 +7,13 @@ from src.app.database.db import AsyncSession
 from src.app.database.models import User, Role, Course, Faculty
 from src.app.security.security_context import hash_password
 from src.app.api.schemas.user import TeacherCreate
+from src.app.repositories.user_repository import UserRepository
 
 
 class TeacherService:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.user_repo = UserRepository(session=self.session)
 
     #register new teacher
     async def add_new_teacher(
@@ -164,6 +166,17 @@ class TeacherService:
         students = result.scalars().unique().all()
 
         return students
+    
+    async def get_teacher_profile(self, user: User):
+        existing_teacher = await self.user_repo.get_teacher_profile(user_id=user.id)
+
+        if not existing_teacher:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Teacher not found."
+            )
+        
+        return existing_teacher
 
 
         

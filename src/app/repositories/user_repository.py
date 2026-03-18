@@ -16,7 +16,6 @@ class UserRepository(BaseRepository):
                 self.model.email,
                 self.model.student_id,
                 self.model.class_,
-                self.model.face_encoding,
                 Faculty.name.label("faculty_name"), 
                 Section.name.label("section_name")
             )
@@ -26,6 +25,24 @@ class UserRepository(BaseRepository):
             .where(
                 self.model.id == user_id,
                 Role.name == "STUDENT"
+            )
+        )
+
+        return result.mappings().one_or_none()
+    
+    async def get_teacher_profile(self, user_id: UUID):
+        result = await self.session.execute(
+            select(
+                self.model.name,
+                self.model.surname,
+                self.model.email,
+                Faculty.name.label("faculty_name"), 
+            )
+            .join(self.model.roles)
+            .join(self.model.faculty)
+            .where(
+                self.model.id == user_id,
+                Role.name == "TEACHER"
             )
         )
 

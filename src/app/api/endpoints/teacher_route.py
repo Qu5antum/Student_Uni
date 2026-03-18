@@ -118,6 +118,14 @@ async def teacher_list_students_of_course(
     teacher_service = TeacherService(session=session)
     return await teacher_service.list_student_of_courses_by_course_id(course_id=course_id, teacher=user)
 
+@teacher_route.get("/profile/{user_id}", dependencies=[Depends(require_roles(["TEACHER"]))], status_code=status.HTTP_200_OK)
+async def teacher_profile(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    teacher_service = TeacherService(session=session)
+    return await teacher_service.get_teacher_profile(user=user)
+
 
 
 
