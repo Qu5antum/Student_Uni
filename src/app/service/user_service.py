@@ -1,6 +1,5 @@
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select
 
 from src.app.security.security import create_jwt_token
 from src.app.security.security_context import check_hashes

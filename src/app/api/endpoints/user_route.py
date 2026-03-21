@@ -32,7 +32,7 @@ async def login(
 
 
 @user_route.put("/change_password", dependencies=[Depends(require_roles(["TEACHER", "STUDENT", "ADMIN"]))], status_code=status.HTTP_200_OK)
-@limiter.limit("10/minute")
+@limiter.limit("30/minute")
 async def change_password(
     request: Request,
     data: ChangePasswordRequest,

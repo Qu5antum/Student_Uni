@@ -1,11 +1,15 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, String, ForeignKey, Boolean, LargeBinary
+from sqlalchemy.sql import func
+from sqlalchemy import Integer, String, ForeignKey, Boolean, LargeBinary, DateTime
 import sqlalchemy as sa
 from typing import List, Optional
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
+from datetime import datetime
+from sqlalchemy import Enum as SqlEnum
 
 from .db import Base
+from src.app.api.schemas.enrollment import EnrollmentStatus
 
 
 user_courses = sa.Table(
@@ -52,11 +56,15 @@ class User(Base):
     faculty: Mapped["Faculty"] = relationship(back_populates="users")
     section: Mapped["Section"] = relationship(back_populates="users")
 
-    courses: Mapped[list["Course"]] = relationship(
+    teaching_courses: Mapped[List["Course"]] = relationship(
         secondary=user_courses,
-        back_populates="users"
+        back_populates="teachers"
     )
 
+    enrollments: Mapped[List["Enrollment"]] = relationship(
+        back_populates="student",
+        cascade="all, delete-orphan"
+    )
 
 
 class Role(Base):
@@ -123,12 +131,52 @@ class Course(Base):
     )
     section_id: Mapped[int] = mapped_column(ForeignKey("sections.id"))
 
-    users: Mapped[list["User"]] = relationship(
+    enrollments: Mapped[List["Enrollment"]] = relationship(
+        back_populates="course",
+        cascade="all, delete-orphan"
+    )
+
+    teachers: Mapped[List["User"]] = relationship(
         secondary=user_courses,
-        back_populates="courses"
+        back_populates="teaching_courses"
     )
 
     __table_args__ = (
         sa.UniqueConstraint("name", "section_id"),
+    )
+
+
+class Enrollment(Base):
+    __tablename__ = "enrollments"
+
+    id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    grade: Mapped[float | None] = mapped_column(nullable=True)
+    attempts: Mapped[int] = mapped_column(
+        Integer,
+        server_default="1",
+        nullable=False
+    )
+    assigned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        index=True
+    )
+
+    status: Mapped[EnrollmentStatus] = mapped_column(
+        SqlEnum(EnrollmentStatus, name="enrollment_status"),
+        default=EnrollmentStatus.IN_PROGRESS
+    )
+
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=False,
+    )
+    course_id: Mapped[int] = mapped_column(Integer, ForeignKey("courses.id"), nullable=False)
+    student: Mapped["User"] = relationship(back_populates="enrollments")
+    course: Mapped["Course"] = relationship(back_populates="enrollments")
+
+    __table_args__ = (
+        sa.UniqueConstraint("student_id", "course_id", name="uq_student_course"),
     )
 
