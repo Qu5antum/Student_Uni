@@ -4,18 +4,16 @@ from sqlalchemy import select
 from src.app.database.db import AsyncSession
 from src.app.database.models import Faculty
 from src.app.api.schemas.faculty import FacultyCreate
+from src.app.repositories.faculty_repository import FacultyRepository
 
 
 class FacultyService:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.faculty_repo = FacultyRepository(session=self.session)
 
     async def add_new_faculty(self, faculty: FacultyCreate):
-        result = await self.session.execute(
-            select(Faculty).where(Faculty.name == faculty.name)
-        )
-
-        existing_faculty = result.scalar_one_or_none()
+        existing_faculty = self.faculty_repo.get_by_faculty_name(name=faculty.name)
 
         if existing_faculty:
             raise HTTPException(
@@ -39,20 +37,12 @@ class FacultyService:
             faculty_id: int | None = None
     ):
         if not faculty_id:
-            result = await self.session.execute(
-                select(Faculty)
-            )
-
-            all_facultys = result.scalars().all()
+            all_facultys = await self.faculty_repo.return_model()
 
             return all_facultys
         
         elif faculty_id:
-            result = await self.session.execute(
-                select(Faculty).where(Faculty.id == faculty_id)
-            )
-
-            existing_faculty = result.scalar_one_or_none()
+            existing_faculty = await self.faculty_repo.get_obj_by_id(id=faculty_id)
 
             if not existing_faculty:
                 raise HTTPException(
@@ -67,7 +57,7 @@ class FacultyService:
             self,
             faculty_id: int
     ):
-        existing_faculty = await self.session.get(Faculty, faculty_id)
+        existing_faculty = await self.faculty_repo.find_by_id(id=faculty_id)
         
         if not existing_faculty:
             raise HTTPException(

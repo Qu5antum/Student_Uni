@@ -26,6 +26,13 @@ user_roles = sa.Table(
     sa.Column("role_id", ForeignKey("roles.id"), primary_key=True),
 )
 
+section_courses = sa.Table(
+    "section_courses",
+    Base.metadata,
+    sa.Column("section_id", ForeignKey("sections.id"), primary_key=True),
+    sa.Column("course_id", ForeignKey("courses.id"), primary_key=True),
+)
+
 
 class User(Base):
     __tablename__ = "users"
@@ -105,8 +112,8 @@ class Section(Base):
     faculty_id: Mapped[int] = mapped_column(ForeignKey("faculties.id"))
 
     courses: Mapped[List["Course"]] = relationship(
-        back_populates="section",
-        cascade="all, delete-orphan"
+        secondary=section_courses,
+        back_populates="sections",
     )
 
     users: Mapped[List["User"]] = relationship(back_populates="section")
@@ -126,10 +133,10 @@ class Course(Base):
     course_class: Mapped[int] = mapped_column(Integer, nullable=False)
     is_optional: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    section: Mapped["Section"] = relationship(
+    section: Mapped[List["Course"]] = relationship(
+        secondary=section_courses,
         back_populates="courses"
     )
-    section_id: Mapped[int] = mapped_column(ForeignKey("sections.id"))
 
     enrollments: Mapped[List["Enrollment"]] = relationship(
         back_populates="course",
@@ -141,9 +148,6 @@ class Course(Base):
         back_populates="teaching_courses"
     )
 
-    __table_args__ = (
-        sa.UniqueConstraint("name", "section_id"),
-    )
 
 
 class Enrollment(Base):

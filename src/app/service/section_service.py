@@ -5,33 +5,30 @@ from sqlalchemy.exc import IntegrityError
 from src.app.database.db import AsyncSession
 from src.app.database.models import Section, Faculty
 from src.app.api.schemas.section import SectionCreate
+from src.app.repositories.section_repository import SectionRepository
+from src.app.repositories.faculty_repository import FacultyRepository
 
 
 class SectionService:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.section_repo = SectionRepository(session=self.session)
+        self.faculty_repo = FacultyRepository(session=self.session)
         
     async def add_new_section(
             self,
             section: SectionCreate
     ):
         try:
-            existing_faculty = await self.session.get(Faculty, section.faculty_id)
+            existing_faculty = await self.faculty_repo.find_by_id(id=section.faculty_id)
 
             if not existing_faculty:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Faculty not found."
                 )
-            
-            result = await self.session.execute(
-                select(Section).where(
-                    Section.name == section.name,
-                    Section.faculty_id == section.faculty_id
-                )
-            )
 
-            existing_section = result.scalar_one_or_none()
+            existing_section = await self.section_repo.get_by_name_id(name=section.name, faculty_id=section.faculty_id)
 
             if existing_section:
                 raise HTTPException(
@@ -62,7 +59,7 @@ class SectionService:
             faculty_id: int,
             section_id: int | None = None
     ):
-        existing_faculty = await self.session.get(Faculty, faculty_id)
+        existing_faculty = await self.faculty_repo.find_by_id(id=faculty_id)
         
         if not existing_faculty:
             raise HTTPException(
@@ -70,24 +67,13 @@ class SectionService:
                 detail=f"Faculty by this ID: {faculty_id} not found."
             )
         
-        if not section_id:
-            result = await self.session.execute(
-                select(Section).where(Section.faculty_id == faculty_id)
-            )
-
-            sections = result.scalars().all()
+        if not section_id: 
+            sections = await self.section_repo.get_obj_by_id(id=section_id)
         
             return sections
         
         elif section_id:
-            result = await self.session.execute(
-                select(Section).where(
-                    Section.id == section_id,
-                    Section.faculty_id == faculty_id
-                )
-            )
-
-            existing_section = result.scalar_one_or_none()
+            existing_section = await self.section_repo.get_section_by_id_and_faculty_id(section_id=section_id, faculty_id=faculty_id)
 
             if not existing_section:
                 raise HTTPException(
@@ -103,22 +89,15 @@ class SectionService:
             faculty_id: int,
             section_id: int | None = None
     ):
-        existing_faculty = await self.session.get(Faculty, faculty_id)
+        existing_faculty = await self.faculty_repo.find_by_id(id=faculty_id)
         
         if not existing_faculty:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Faculty by this ID: {faculty_id} not found."
             )
-        
-        result = await self.session.execute(
-            select(Section).where(
-                Section.id == section_id,
-                Section.faculty_id == faculty_id
-            )
-        )
 
-        existing_section = result.scalar_one_or_none()
+        existing_section = await self.section_repo.get_section_by_id_and_faculty_id(section_id=section_id, faculty_id=faculty_id)
 
         if not existing_section:
             raise HTTPException(
