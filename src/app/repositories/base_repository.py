@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from sqlalchemy import select
+from typing import List
 
 from src.app.database.db import AsyncSession
 
@@ -14,6 +15,10 @@ class AbstractRepository(ABC):
     
     @abstractmethod
     async def return_model(self):
+        raise NotImplementedError
+    
+    @abstractmethod
+    async def find_with_ids(self, ids: List[int]):
         raise NotImplementedError
     
 
@@ -41,5 +46,13 @@ class BaseRepository(AbstractRepository):
         )
 
         return result.scalars().all()
+    
+    async def find_with_ids(self, ids: List[int]):
+        result = await self.session.execute(
+            select(self.model).where(self.model.id.in_(ids))
+        )
+
+        return result.scalars().all()
+        
 
     

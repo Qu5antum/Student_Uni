@@ -8,7 +8,7 @@ class CourseCreate(BaseModel):
     course_semester: str = Field(min_length=2, max_length=20)
     course_class: int = Field(ge=1, le=7)
     is_optional: bool = Field(default=False)
-    section_id: int
+    section_ids: List[int] = Field(...)
 
 
 class CourseUpdate(BaseModel):
@@ -17,7 +17,7 @@ class CourseUpdate(BaseModel):
     course_semester: str | None = Field(None, min_length=2, max_length=20)
     course_class: int | None = Field(None, ge=1, le=7)
     is_optional: bool | None = None
-    section_id: int | None = None
+    section_ids: List[int] | None = None
 
 
 class CourseOut(BaseModel):
@@ -27,7 +27,7 @@ class CourseOut(BaseModel):
     course_semester: str
     course_class: int
     is_optional: bool
-    section_id: int
+    section_ids: List[int]
 
     class Config:
         from_attributes = True

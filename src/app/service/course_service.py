@@ -11,6 +11,8 @@ import logging
 from src.app.database.db import AsyncSession
 from src.app.api.schemas.course import CourseCreate, CourseUpdate
 from src.app.database.models import Course, Section, User, Role
+from src.app.repositories.section_repository import SectionRepository
+from src.app.repositories.course_repository import CourseRepository
 
 logger = logging.getLogger(__name__)
 
@@ -38,36 +40,32 @@ async def optional_course_max_select(student_class: int, semester: str) -> int:
 class CourseService:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.section_repo = SectionRepository(session=self.session)
+        self.course_repo = CourseRepository(session=self.session)
 
     async def add_new_course(self, course: CourseCreate):
         try:
-            existing_section = await self.session.get(Section, course.section_id)
+            existing_sections = await self.section_repo.find_with_ids(ids=course.section_ids)
 
-            if not existing_section:
+            if not existing_sections:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Section by this ID: {course.section_id} not found."
+                    detail=f"Sections not found."
                 )
-            
-            result = await self.session.execute(
-                select(Course).where(
-                    Course.name == course.name,
-                    Course.section_id == course.section_id,
-                    Course.course_code == course.course_code
-                )
-            )
 
-            existing_course = result.scalar_one_or_none()
+            existing_course = await self.course_repo.get_course_by_code(course_code=course.course_code)
 
             if existing_course:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Course already exists in this section."
+                    detail="Course already exists in sections."
                 )
             
             new_course = Course(
-                **course.model_dump()
+                **course.model_dump(exclude={"section_ids"}),
             )
+
+            new_course.sections = existing_sections
 
             self.session.add(new_course)
             await self.session.commit()
@@ -91,7 +89,7 @@ class CourseService:
             section_id: int,
             course_id: int | None = None
     ):
-        existing_section = await self.session.get(Section, section_id)
+        existing_section = await self.section_repo.find_by_id(id=section_id)
 
         if not existing_section:
             raise HTTPException(
@@ -100,25 +98,12 @@ class CourseService:
             )
         
         if not course_id:
-            result = await self.session.execute(
-                select(Course).where(
-                    Course.section_id == section_id
-                )
-            )
+            courses = await self.course_repo.get_course_with_section_id(section_id=section_id)
 
-            course = result.scalars().all()
-
-            return course
+            return courses
 
         elif course_id:
-            result = await self.session.execute(
-                select(Course).where(
-                    Course.id == course_id,
-                    Course.section_id == section_id
-                )
-            )
-        
-            existing_course = result.scalars().all()
+            existing_course = await self.course_repo.get_course_with_section_id(section_id=section_id, course_id=course_id)
 
             if not existing_course:
                 raise HTTPException(
@@ -129,11 +114,7 @@ class CourseService:
             return existing_course  
 
     async def get_course_by_course_code(self, course_code: str) -> Course:
-        result = await self.session.execute(
-            select(Course)
-            .where(Course.course_code == course_code)
-        )
-        existing_course = result.scalar_one_or_none()
+        existing_course = await self.course_repo.get_course_by_code(course_code=course_code)
 
         if not existing_course:
             raise HTTPException(
@@ -148,7 +129,7 @@ class CourseService:
             section_id: int,
             course_id: int
     ):
-        existing_section = await self.session.get(Section, section_id)
+        existing_section = await self.section_repo.find_by_id(id=section_id)
 
         if not existing_section:
             raise HTTPException(
@@ -156,14 +137,7 @@ class CourseService:
                 detail=f"Section by this ID: {section_id} not found."
             )
         
-        result = await self.session.execute(
-            select(Course).where(
-                Course.id == course_id,
-                Course.section_id == section_id
-            )
-        )
-
-        existing_course = result.scalar_one_or_none()
+        existing_course = await self.course_repo.get_course_with_section_id(section_id=section_id, course_id=course_id)
 
         if not existing_course:
             raise HTTPException(
@@ -176,6 +150,54 @@ class CourseService:
 
         return {"detail": "Course successfully deleted."}
     
+    async def update_course_by_id(
+            self,
+            course_id: int,
+            course_update: CourseUpdate
+    ):
+        try:   
+            existing_course = await self.course_repo.find_by_id(id=course_id)
+
+            if not existing_course:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Course by this ID: {course_id} not found."
+                )
+            course_data = course_update.model_dump(exclude={"section_ids"}, exclude_unset=True)
+            
+            for field, value in course_data.items():
+                setattr(existing_course, field, value)
+            
+            if course_update.section_ids is not None:
+                existing_sections = await self.section_repo.find_with_ids(ids=course_update.section_ids)
+
+                if len(existing_sections) != len(course_update.section_ids):
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Some sections not found."
+                    )
+
+                existing_course.sections = existing_sections
+
+            await self.session.commit() 
+            await self.session.refresh(existing_course)
+
+            return {
+                "message": "Courses successfully updated.",
+                "Course": existing_course
+            }
+        except IntegrityError:
+            await self.session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Database integrity error."
+            )
+    
+
+class StudentCourseService:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
     async def get_course_for_student(
             self,
             student: User
@@ -337,41 +359,7 @@ class CourseService:
         user = result.scalar_one_or_none()
 
         return user.courses
-    
-    async def update_course_by_id(
-            self,
-            course_id: int,
-            course_update: CourseUpdate
-    ):
-        existing_course = await self.session.get(Course, course_id)
-
-        if not existing_course:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Course by this ID: {course_id} not found."
-            )
-        course_data = course_update.model_dump(exclude_unset=True)
-
-        if "section_id" in course_data:
-            existing_section = await self.session.get(Section, course_data["section_id"])
-
-            if not existing_section:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Section by this ID: {course_data['section_id']} not found."
-                )
-        
-        for field, value in course_data.items():
-            setattr(existing_course, field, value)
-
-        await self.session.commit() 
-        await self.session.refresh(existing_course)
-
-        return {
-            "message": "Courses successfully updated.",
-            "Course": existing_course
-        }
-    
+       
     async def delete_student_courses_by_id(
             self,
             section_id: int,
@@ -467,6 +455,27 @@ class CourseService:
             )
         
         return existing_student
+    
+    async def numbers_of_student_of_current_course(
+            self,
+            course_id: int,
+    ):
+        result = await self.session.execute(
+            select(func.count(func.distinct(User.id)))
+            .join(User.roles)
+            .join(User.courses)
+            .where(
+                Course.id == course_id,
+                Role.name == "STUDENT"
+            )
+        )
+        student_count = result.scalar_one()
+
+        return student_count
+    
+class TeacherCourseService:
+    def __init__(self, session: AsyncSession):
+        self.session = session
     
     async def add_course_for_teacher_by_teacher_id(
             self,
@@ -619,22 +628,3 @@ class CourseService:
         await self.session.commit()
 
         return {"detail": f"All courses of teacher with ID {teacher_id} deleted."}
-
-        
-    async def numbers_of_student_of_current_course(
-            self,
-            course_id: int,
-    ):
-        result = await self.session.execute(
-            select(func.count(func.distinct(User.id)))
-            .join(User.roles)
-            .join(User.courses)
-            .where(
-                Course.id == course_id,
-                Role.name == "STUDENT"
-            )
-        )
-        student_count = result.scalar_one()
-
-        return student_count
-

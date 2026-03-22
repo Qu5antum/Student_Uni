@@ -133,7 +133,7 @@ class Course(Base):
     course_class: Mapped[int] = mapped_column(Integer, nullable=False)
     is_optional: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    section: Mapped[List["Course"]] = relationship(
+    sections: Mapped[List["Course"]] = relationship(
         secondary=section_courses,
         back_populates="courses"
     )
