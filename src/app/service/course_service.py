@@ -10,9 +10,11 @@ import logging
 
 from src.app.database.db import AsyncSession
 from src.app.api.schemas.course import CourseCreate, CourseUpdate
-from src.app.database.models import Course, Section, User, Role
+from src.app.database.models import Course, Section, User, Role, Enrollment
 from src.app.repositories.section_repository import SectionRepository
 from src.app.repositories.course_repository import CourseRepository
+from src.app.repositories.user_repository import UserRepository
+from src.app.repositories.enrollment_repository import EnrollmentRepository
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +199,10 @@ class CourseService:
 class StudentCourseService:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.course_repo = CourseRepository(session=self.session)
+        self.section_repo = SectionRepository(session=self.session)
+        self.user_repo = UserRepository(session=self.session)
+        self.enrollment_repo = EnrollmentRepository(session=self.session)
 
     async def get_course_for_student(
             self,
@@ -210,13 +216,7 @@ class StudentCourseService:
                 detail="Course selection is closed."
             )
         
-        result_course = await self.session.execute(
-            select(Course).where(
-                Course.course_class == student.class_,
-                Course.course_semester == semester
-            )
-        )
-        courses = result_course.scalars().all()
+        courses = await self.course_repo.get_course_with_class_and_semester(student_class=student.class_, semester=semester)
 
         return courses
     
@@ -234,15 +234,7 @@ class StudentCourseService:
                 detail="Course selection is closed."
             )
         
-        result = await self.session.execute(
-            select(User)
-            .join(User.courses)
-            .where(
-                User.id == student.id,
-            )
-            .options(selectinload(User.courses))
-        )
-        current_student = result.scalar_one_or_none()
+        current_student = await self.user_repo.get_student_with_courses(student_id=student.id)
         
         student_max_option = await optional_course_max_select(student_class=current_student.class_, semester=semester)
 
@@ -251,26 +243,25 @@ class StudentCourseService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"You can select only {student_max_option} optional courses."
             )
-            
-        result_course = await self.session.execute(
-            select(Course).where(
-                Course.course_class == current_student.class_,
-                Course.course_semester == semester
-            )
-        )
-        courses = result_course.scalars().all()
+        
+        courses = await self.course_repo.get_course_with_class_and_semester(student_class=student.class_, semester=semester)
 
         compulsory_courses = [c for c in courses if not c.is_optional]
         optional_courses = [c for c in courses if c.is_optional]
 
-        existing_ids = {c.id for c in current_student.courses}
-
-
+        existing_ids = {c.course_id for c in current_student.enrollments}
+        
+        courses_to_add = []
+        
         for course in compulsory_courses:
             if course.id not in existing_ids:
-                current_student.courses.append(course)
+                new_enrollment = Enrollment(
+                    course_id = course.id,
+                    student_id = current_student.id
+                )
+                courses_to_add.append(new_enrollment)
                 existing_ids.add(course.id)
-
+        
         optional_map = {c.id: c for c in optional_courses}
 
         for course_id in selected_course_ids:
@@ -281,15 +272,26 @@ class StudentCourseService:
                     )
 
                 if course_id not in existing_ids:
-                    current_student.courses.append(optional_map[course_id])
-                    existing_ids.add(course_id)
+                    new_enrollment = Enrollment(
+                        course_id = course_id,
+                        student_id = current_student.id
+                    )
+                    courses_to_add.append(new_enrollment)
+                    existing_ids.add(course.id)
         
-        await self.session.flush()
+        self.session.add_all(courses_to_add)
         await self.session.commit()
-
+        
+        course_info = [
+            {"id": e.course_id, "name": optional_map.get(e.course_id, {c.id: c for c in compulsory_courses}[e.course_id]).name}
+            if e.course_id in optional_map else
+            {"id": e.course_id, "name": {c.id: c for c in compulsory_courses}[e.course_id].name}
+            for e in courses_to_add
+        ]
+        
         return {
             "message": "Courses successfully selected.",
-            "courses": [{"id": c.id, "name": c.name} for c in current_student.courses]
+            "courses": course_info
         }    
     
     async def custom_course_add_for_student(
@@ -297,12 +299,7 @@ class StudentCourseService:
             student_id: str,
             course_ids: List[int]
     ):
-        result = await self.session.execute(
-            select(User)
-            .where(User.student_id == student_id)
-            .options(selectinload(User.courses))
-        )
-        student = result.scalar_one_or_none()
+        student = await self.user_repo.get_student_with_courses(student_id=student_id)
 
         if not student:
             raise HTTPException(
@@ -310,13 +307,14 @@ class StudentCourseService:
                 detail=f"Student by student ID: {student_id} not found."
             )
         
-        result = await self.session.execute(
-            select(Course).where(
-                Course.id.in_(course_ids),
-                Course.course_semester == current_semester()
+        semester = current_semester()
+        if not semester:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Course selection is closed."
             )
-        )
-        courses = result.scalars().all()
+    
+        courses = await self.course_repo.get_courses_with_ids_and_semester(course_ids=course_ids, semester=semester)
 
         found_ids = {c.id for c in courses}
         missing_ids = set(course_ids) - found_ids
@@ -327,7 +325,7 @@ class StudentCourseService:
                 detail=f"Courses not found: {list(missing_ids)}"
             )
                 
-        students_existing_course = {c.id for c in student.courses}
+        students_existing_course = {c.course_id for c in student.enrollments}
 
         courses_to_add = [
             course for course in courses
@@ -337,7 +335,12 @@ class StudentCourseService:
         if not courses_to_add:
             return {"detail": "No new courses to add"}
 
-        student.courses.extend(courses_to_add)
+        courses_to_add_objs = [
+            Enrollment(course_id=c.id, student_id=student.id)
+            for c in courses_to_add
+        ]
+
+        self.session.add_all(courses_to_add_objs)
 
         await self.session.commit()
 
@@ -350,23 +353,17 @@ class StudentCourseService:
             self,
             student: User
     ):
-        result = await self.session.execute(
-            select(User)
-            .where(User.id == student.id)
-            .options(selectinload(User.courses))
-        )
+        user = await self.user_repo.get_student_with_courses(student_id=student.id)
 
-        user = result.scalar_one_or_none()
-
-        return user.courses
+        return user.enrollments
        
     async def delete_student_courses_by_id(
             self,
             section_id: int,
-            student_id: str | None = None, 
+            student_id: UUID | None = None, 
             course_id: int | None = None
     ):
-        section = await self.session.get(Section, section_id)
+        section = await self.section_repo.find_by_id(id=section_id)
 
         if not section:
             raise HTTPException(
@@ -375,78 +372,62 @@ class StudentCourseService:
             )
         
         if student_id is None:
-            result = await self.session.execute(
-                select(User)
-                .join(User.roles)
-                .where(
-                    Role.name == "STUDENT",
-                    User.section_id == section_id,
-                )
-                .options(selectinload(User.courses))
-            )
-            students = result.scalars().all()
-    
-            for student in students:
-                student.courses.clear()
+            students = await self.user_repo.get_student_with_section_id(section_id=section_id)
+            student_ids = [s.id for s in students]
+            
+            if not student_ids:
+                return {"detail": "No students found in this sections."}
+            
+            deleted_course_of_students = await self.enrollment_repo.delete_course_of_students(student_ids=student_ids)
 
+            if not deleted_course_of_students:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Some courses of students not deleted."
+                )
+            
             await self.session.commit()
 
             return {"detail": f"Courses of students in this section ID: {section_id} deleted."}
         
-        result = await self.session.execute(
-            select(User)
-            .join(User.roles)
-            .where(
-                Role.name == "STUDENT",
-                User.student_id == student_id
-            )
-            .options(selectinload(User.courses))
-        )
-        existing_student = result.scalar_one_or_none()
+        existing_student = await self.user_repo.find_by_id(id=student_id)
 
         if not existing_student:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Student not found with ID: {student_id} not found."
+                detail=f"Student not found with ID: {student_id} not found."
             )
         
         if course_id is not None:
-            course_to_remove = next(
-                (c for c in existing_student.courses if c.id == course_id),
-                None
-            )
-
-            if not course_to_remove:
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"Course {course_id} not found for this teacher."
+            deleted_ids = await self.enrollment_repo.delete_with_student_id_and_course_id(student_id=student_id, course_id=course_id)
+            
+            if not deleted_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Course {course_id} not found for this student."
                 )
-
-            existing_student.courses.remove(course_to_remove) 
-
+            
             await self.session.commit()
 
             return {"detail": f"Course with ID: {course_id} removed from student."}
-
-        if not existing_student.courses:
-            return {"detail": "Student has no courses."}
         
-        existing_student.courses.clear()
+        deleted_course_of_student = await self.enrollment_repo.delete_with_student_id(student_id=student_id)
 
+        if not deleted_course_of_student:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Courses of student not deleted or not found."
+            )
+        
         await self.session.commit()
 
-        return {"detail": f"All courses of teacher with ID {student_id} deleted."}
+        return {"detail": f"All courses of student with ID {student_id} deleted."}
     
     async def get_student_and_courses_by_student_id(
             self,
             student_id: str
     ):
-        result = await self.session.execute(
-            select(User)
-            .where(User.student_id == student_id)
-            .options(selectinload(User.courses))
-        )
-        existing_student = result.scalar_one_or_none()
+        existing_student = await self.user_repo.get_student_with_courses(student_id=student_id)
 
         if not existing_student:
             raise HTTPException(
@@ -460,16 +441,7 @@ class StudentCourseService:
             self,
             course_id: int,
     ):
-        result = await self.session.execute(
-            select(func.count(func.distinct(User.id)))
-            .join(User.roles)
-            .join(User.courses)
-            .where(
-                Course.id == course_id,
-                Role.name == "STUDENT"
-            )
-        )
-        student_count = result.scalar_one()
+        student_count = await self.user_repo.count_student_in_course(course_id=course_id)
 
         return student_count
     

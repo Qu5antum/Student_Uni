@@ -4,7 +4,7 @@ from typing import List
 
 from src.app.database.db import AsyncSession
 
-class AbstractRepository(ABC):
+class AbstractRepository(ABC):  
     @abstractmethod
     async def find_by_id(self, id: int):
         raise NotImplementedError

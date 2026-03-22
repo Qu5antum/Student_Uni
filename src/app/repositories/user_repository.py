@@ -1,9 +1,10 @@
 from uuid import UUID
-from sqlalchemy import select
+from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 
 from src.app.security.security_context import hash_password
 from .base_repository import BaseRepository
-from src.app.database.models import User, Faculty, Section, Role
+from src.app.database.models import User, Faculty, Section, Role, Enrollment
 
 
 class UserRepository(BaseRepository):
@@ -69,7 +70,42 @@ class UserRepository(BaseRepository):
         await self.session.refresh(user)
 
         return user
+    
+    async def get_student_with_courses(self, student_id: str):
+        result = await self.session.execute(
+            select(self.model)
+            .where(self.model.student_id == student_id)
+            .options(
+                selectinload(self.model.enrollments).selectinload(Enrollment.course)
+            )
+        )
 
+        return result.scalar_one_or_none()
+    
+    async def count_student_in_course(self, course_id: int):
+        result = await self.session.execute(
+            select(func.count(func.distinct(self.model.id)))
+            .join(self.model.roles)
+            .join(self.model.enrollments)
+            .where(
+                Enrollment.course_id == course_id,
+                Role.name == "STUDENT"
+            )
+        )
+
+        return result.scalar_one()
+    
+    async def get_student_with_section_id(self, section_id: int):
+        result = await self.session.execute(
+            select(self.model)
+            .join(self.model.roles)
+            .where(
+                Role.name == "STUDENT",
+                self.model.section_id == section_id,
+            )
+            .options(selectinload(self.model.enrollments).selectinload(Enrollment.course))
+        )
+        return result.scalars().all()
         
         
 

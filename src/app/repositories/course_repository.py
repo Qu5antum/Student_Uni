@@ -34,3 +34,25 @@ class CourseRepository(BaseRepository):
         result = await self.session.execute(query)
 
         return result.scalars().all()
+    
+    async def get_course_with_class_and_semester(self, student_class: int, semester: str):
+        result = await self.session.execute(
+            select(self.model)
+            .where(
+                self.model.course_class == student_class,
+                self.model.course_semester == semester
+            )
+        )
+
+        return result.scalars().all()
+    
+    async def get_courses_with_ids_and_semester(self, course_ids: List[int], semester: str):
+        result = await self.session.execute(
+            select(self.model)
+            .where(
+                self.model.id.in_(course_ids),
+                self.model.course_semester == semester
+            )
+        )
+
+        return result.scalars().all()
