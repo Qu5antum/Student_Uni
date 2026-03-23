@@ -33,7 +33,7 @@ class TeacherCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=7, max_length=15)
 
-    faculty_id: int
+    faculty_id: int | None = None
 
     @field_validator("password")
     @classmethod
@@ -101,3 +101,9 @@ class ChangePasswordRequest(BaseModel):
         
         return new_password
 
+
+class AdminCreate(BaseModel):
+    name: str  = Field(min_length=2, max_length=50)
+    surname: str = Field(min_length=2, max_length=50)
+    email: EmailStr
+    password: str

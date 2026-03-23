@@ -11,7 +11,7 @@ from src.app.service.user_service import AuthenticationService
 from src.app.api.dependencies.dependency import get_current_user
 from src.app.api.dependencies.check_role import require_roles
 from src.app.service.face_setup_service import FaceRecognitionService
-from src.app.api.schemas.user import ChangePasswordRequest
+from src.app.api.schemas.user import ChangePasswordRequest, AdminCreate
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -19,6 +19,15 @@ user_route = APIRouter(
     prefix="/api/user",
     tags=['users']
 )
+
+@user_route.post("/admin/register", status_code=status.HTTP_201_CREATED)
+async def register_admin(
+    admin: AdminCreate,
+    session: AsyncSession = Depends(get_session)
+):
+    user_service = AuthenticationService(session=session)
+    return await user_service.create_admin(admin=admin)
+
 
 @user_route.post("/login", status_code=status.HTTP_200_OK)
 @limiter.limit("5/minute")

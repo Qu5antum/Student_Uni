@@ -22,3 +22,9 @@ class RoleRepository(BaseRepository):
 
         return result.scalar_one_or_none()
     
+    async def get_admin_role(self):
+        result = await self.session.execute(
+            select(self.model).where(self.model.name == "ADMIN")
+        )
+
+        return result.scalar_one_or_none()

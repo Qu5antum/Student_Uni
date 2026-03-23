@@ -12,7 +12,7 @@ faculty_route = APIRouter(
 )
 
 
-@faculty_route.post("admin/new_faculty", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_201_CREATED)
+@faculty_route.post("/admin/new_faculty", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_201_CREATED)
 async def new_faculty(
     faculty: FacultyCreate,
     session: AsyncSession = Depends(get_session)
@@ -21,7 +21,7 @@ async def new_faculty(
     return await faculty_service.add_new_faculty(session=session, faculty=faculty)
 
 
-@faculty_route.get("admin/", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@faculty_route.get("/admin", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def get_faculty(
     session: AsyncSession = Depends(get_session)
 ):

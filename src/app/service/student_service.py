@@ -59,7 +59,7 @@ class StudentService:
         if not role:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Role not found"
+                detail="Role not found."
             )
         
         new_user = User(
@@ -77,7 +77,7 @@ class StudentService:
             await self.session.rollback()
             raise
 
-        return {"message: ", "Student Registered successfully."}
+        return {"message": "Student Registered successfully."}
 
     async def get_all_students(self):
         students = await self.user_repo.get_students()

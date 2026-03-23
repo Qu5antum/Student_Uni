@@ -39,7 +39,7 @@ class TeacherService:
         if not role:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Role not found"
+                detail="Role not found."
             )
         
         new_user = User(
