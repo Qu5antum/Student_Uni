@@ -8,7 +8,7 @@ from src.app.api.schemas.user import StudentCourse, StudentCreate, StudentOut
 from src.app.api.schemas.course import StudentCoursesOut
 from src.app.database.models import User
 from src.app.service.student_service import StudentService
-from src.app.service.course_service import CourseService
+from src.app.service.course_service import StudentCourseService
 
 student_route = APIRouter(
     prefix="/api/user/student",
@@ -75,7 +75,7 @@ async def courses_for_student(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    course_service = CourseService(session=session)
+    course_service = StudentCourseService(session=session)
     return await course_service.get_course_for_student(student=user)
 
 @student_route.post("/student_course_select", dependencies=[Depends(require_roles(["STUDENT", "ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -84,7 +84,7 @@ async def select_course(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ): 
-    course_service = CourseService(session=session)
+    course_service = StudentCourseService(session=session)
     return await course_service.course_selection_for_student(student=user, student_selected_course_ids=selected_course_ids)
 
 @student_route.post("/admin/custom_course_student/{student_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -93,7 +93,7 @@ async def custom_course_add(
     course_ids: List[int],
     session: AsyncSession = Depends(get_session)
 ):
-    course_service = CourseService(session=session)
+    course_service = StudentCourseService(session=session)
     return await course_service.custom_course_add_for_student(student_id=student_id, course_ids=course_ids)
 
 @student_route.get("/student_course_select_", dependencies=[Depends(require_roles(["STUDENT", "ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -101,7 +101,7 @@ async def get_courses_for_student(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
-    course_service = CourseService(session=session)
+    course_service = StudentCourseService(session=session)
     return await course_service.get_courses_that_student_can(student=user)
 
 @student_route.delete("/admin/section/{section_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -109,7 +109,7 @@ async def delete_student_courses_in_section(
     section_id: int,
     session: AsyncSession = Depends(get_session)
 ):
-    course_service = CourseService(session=session)
+    course_service = StudentCourseService(session=session)
     return await course_service.delete_student_courses_by_id(section_id=section_id)
 
 @student_route.delete("/admin/section/{section_id}/student/{student_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
@@ -118,7 +118,7 @@ async def delete_student_courses_by_student_id(
     student_id: str,
     session: AsyncSession = Depends(get_session)
 ):
-    course_service = CourseService(session=session)
+    course_service = StudentCourseService(session=session)
     return await course_service.delete_student_courses_by_id(section_id=section_id, student_id=student_id)
 
 
@@ -129,7 +129,7 @@ async def delete_student_courses_by_student_id(
     course_id: int,
     session: AsyncSession = Depends(get_session)
 ):
-    course_service = CourseService(session=session)
+    course_service = StudentCourseService(session=session)
     return await course_service.delete_student_courses_by_id(section_id=section_id, student_id=student_id, course_id=course_id)
 
 
@@ -138,7 +138,7 @@ async def get_student_and_courses(
     student_id: str,
     session: AsyncSession = Depends(get_session)
 ):
-    course_service = CourseService(session=session)
+    course_service = StudentCourseService(session=session)
     return await course_service.get_student_and_courses_by_student_id(student_id=student_id)
 
 @student_route.get("/profile/{user_id}", dependencies=[Depends(require_roles(["STUDENT"]))], status_code=status.HTTP_200_OK)

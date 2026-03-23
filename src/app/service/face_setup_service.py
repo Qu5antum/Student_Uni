@@ -8,11 +8,13 @@ from uuid import UUID
 
 from src.app.database.db import AsyncSession
 from src.app.database.models import User
+from src.app.repositories.user_repository import UserRepository
 
 
 class FaceRecognitionService:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.user_repo = UserRepository(session=self.session)
             
     async def register_face_for_current_user(
             self,
@@ -74,10 +76,7 @@ class FaceRecognitionService:
         
         input_encoding = encodings[0]
 
-        result = await self.session.execute(
-            select(User).where(User.face_encoding.is_not(None))
-        )
-        users = result.scalars().all()
+        users = await self.user_repo.get_user_with_face_encode()
 
         for user in users:
             db_encoding = np.frombuffer(user.face_encoding, dtype=np.float64)
@@ -100,12 +99,9 @@ class FaceRecognitionService:
             user: User | None = None,
             user_id: UUID | None = None
     ):
+        existing_user = await self.user_repo.get_user(user_id=user_id)
+        
         if not user:
-            result = await self.session.execute(
-                select(User).where(User.id == user_id)
-            )
-            existing_user = result.scalar_one_or_none()
-
             if not existing_user:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,

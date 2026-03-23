@@ -8,19 +8,25 @@ from src.app.database.models import User, Role, Course, Faculty
 from src.app.security.security_context import hash_password
 from src.app.api.schemas.user import TeacherCreate
 from src.app.repositories.user_repository import UserRepository
+from src.app.repositories.role_repository import RoleRepository
+from src.app.repositories.faculty_repository import FacultyRepository
+from src.app.repositories.course_repository import CourseRepository
 
 
 class TeacherService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.user_repo = UserRepository(session=self.session)
+        self.role_repo = RoleRepository(session=self.session)
+        self.faculty_repo = FacultyRepository(session=self.session)
+        self.course_repo = CourseRepository(session=self.session)
 
     #register new teacher
     async def add_new_teacher(
             self, 
             personel: TeacherCreate
     ):
-        faculty = await self.session.get(Faculty, personel.faculty_id)
+        faculty = await self.faculty_repo.find_by_id(id=personel.faculty_id)
 
         if not faculty:
             raise HTTPException(
@@ -28,9 +34,7 @@ class TeacherService:
                 detail=f"Faculty with ID: {personel.faculty_id} not found."
             )
         
-        role = await self.session.scalar(
-            select(Role).where(Role.name == "TEACHER") 
-        )
+        role = await self.role_repo.get_teacher_role()
 
         if not role:
             raise HTTPException(
@@ -56,26 +60,13 @@ class TeacherService:
             self,
             teacher_id: UUID | None = None
     ):
-        if not teacher_id:
-            result = await self.session.execute(
-                select(User)
-                .join(User.roles)
-                .where(Role.name == "TEACHER")
-            ) 
-            teachers = result.scalars().unique().all()
+        if not teacher_id: 
+            teachers = await self.user_repo.get_teachers()
 
             return teachers
         
         elif teacher_id:
-            result = await self.session.execute(
-                select(User)
-                .join(User.roles)
-                .where(
-                    User.id == teacher_id,
-                    Role.name == "TEACHER"
-                )
-            )
-            existing_teacher = result.scalar_one_or_none()
+            existing_teacher = await self.user_repo.get_teacher_with_courses(teacher_id=teacher_id)
 
             if not existing_teacher:
                 raise HTTPException(
@@ -90,11 +81,7 @@ class TeacherService:
             self,
             teacher_id: UUID
     ):
-        result = await self.session.execute(
-            select(User)
-            .where(User.id == teacher_id)       
-        )
-        existing_teacher = result.scalar_one_or_none()
+        existing_teacher = await self.user_repo.get_teacher(teacher_id=teacher_id)
 
         if not existing_teacher:
             raise HTTPException(
@@ -112,18 +99,9 @@ class TeacherService:
             self,
             teacher: User
     ):
-        result = await self.session.execute(
-            select(User)
-            .join(User.roles)
-            .where(
-                User.id == teacher.id,
-                Role.name == "TEACHER"
-            )
-            .options(selectinload(User.courses))
-        )
-        teacher = result.scalar_one_or_none()
+        teacher = await self.user_repo.get_teacher_with_courses(teacher_id=teacher.id)
 
-        return teacher.courses
+        return teacher.teaching_courses
 
 
     async def list_student_of_courses_by_course_id(
@@ -131,7 +109,7 @@ class TeacherService:
             course_id: int,
             teacher: User
     ):
-        existing_course = await self.session.get(Course, course_id)
+        existing_course = await self.course_repo.find_by_id(id=course_id)
 
         if not existing_course:
             raise HTTPException(
@@ -139,14 +117,7 @@ class TeacherService:
                 detail=f"Course with ID: {course_id} not found."
             )
         
-        result = await self.session.execute(
-            select(User.id)
-            .where(
-                User.id == teacher.id,
-                User.courses.any(Course.id == course_id)
-            )
-        )
-        teacher_exists = result.scalar_one_or_none()
+        teacher_exists = await self.user_repo.get_teacher(teacher_id=teacher.id, course_id=course_id)
 
         if not teacher_exists:
             raise HTTPException(
@@ -154,16 +125,7 @@ class TeacherService:
                 detail=f"Teacher does not teach this course with ID {course_id}"
             )
 
-        
-        result = await self.session.execute(
-            select(User)
-            .join(User.roles)
-            .where(
-                Role.name == "STUDENT",
-                User.courses.any(Course.id == course_id)
-            ) 
-        )
-        students = result.scalars().unique().all()
+        students = await self.user_repo.get_students(course_id=course_id)
 
         return students
     

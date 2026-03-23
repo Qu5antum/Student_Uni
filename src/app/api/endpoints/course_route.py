@@ -2,7 +2,7 @@ from fastapi import APIRouter, status, Depends
 
 from src.app.database.db import get_session, AsyncSession
 from src.app.api.schemas.course import CourseCreate, CourseUpdate, CourseOut
-from src.app.service.course_service import CourseService
+from src.app.service.course_service import CourseService, StudentCourseService
 from src.app.service.course_service import *
 from src.app.api.dependencies.check_role import require_roles
 
@@ -74,7 +74,7 @@ async def get_student_numbers_of_course(
     course_id: int,
     session: AsyncSession = Depends(get_session)
 ):
-    course_service = CourseService(session=session)
+    course_service = StudentCourseService(session=session)
     return await course_service.numbers_of_student_of_current_course(course_id=course_id)
 
 

@@ -4,7 +4,7 @@ from sqlalchemy.orm import selectinload
 
 from src.app.security.security_context import hash_password
 from .base_repository import BaseRepository
-from src.app.database.models import User, Faculty, Section, Role, Enrollment
+from src.app.database.models import User, Faculty, Section, Role, Enrollment, Course
 
 
 class UserRepository(BaseRepository):
@@ -14,6 +14,13 @@ class UserRepository(BaseRepository):
         result = await self.session.execute(
             select(self.model).where(self.model.email == email)
         )
+        return result.scalar_one_or_none()
+    
+    async def get_user(self, user_id: UUID):
+        result = await self.session.execute(
+            select(self.model).where(self.model.id == user_id)
+        )
+
         return result.scalar_one_or_none()
 
     async def get_student_profile(self, user_id: UUID):
@@ -131,7 +138,83 @@ class UserRepository(BaseRepository):
             .options(selectinload(self.model.teaching_courses))
         )
         return result.scalars().all()
+    
+    async def get_teachers(self):
+        result = await self.session.execute(
+            select(self.model)
+            .join(self.model.roles)
+            .where(Role.name == "TEACHER")
+        )
+        
+        return result.scalars().unique().all()
+    
+    async def get_teacher(self, teacher_id: UUID, course_id: int | None = None):
+        query = (
+            select(self.model)
+            .join(self.model.roles)
+            .where(
+                self.model.id == teacher_id,
+                Role.name == "TEACHER"
+            )
+        )
 
+        if course_id:
+            query = query.where(self.model.teaching_courses.any(Course.id == course_id))
+
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+    
+    async def get_students(
+            self, 
+            faculty_id: int | None = None,
+            section_id: int | None = None,
+            name: str | None = None, 
+            surname: str | None = None, 
+            course_id: int | None = None
+    ):
+        query = (
+            select(self.model)
+            .join(self.model.roles)
+            .where(Role.name == "STUDENT")
+        )
+
+        if name and surname:
+            query = query.where(
+                self.model.name == name,
+                self.model.surname == surname
+            )
+
+            result = await self.session.execute(query)
+            return result.scalar_one_or_none()
+        
+        if faculty_id and section_id:
+            query = query.where(
+                self.model.faculty_id == faculty_id,
+                self.model.section_id == section_id
+            )
+
+            result = await self.session.execute(query)
+            return result.scalars().all()
+
+        if course_id:
+            query = query.where(self.model.enrollments.any(Course.id == course_id))
+        
+        result = await self.session.execute(query)
+        return result.scalars().unique().all()
+    
+    async def get_student_with_student_id(self, student_id: str):
+        result = await self.session.execute(
+            select(self.model).where(self.model.student_id == student_id)
+        )
+
+        return result.scalar_one_or_none()
+    
+    async def get_user_with_face_encode(self):
+        result = await self.session.execute(
+            select(self.model).where(self.model.face_encoding.is_not(None))
+        )
+
+        return result.scalars().all()
 
         
         

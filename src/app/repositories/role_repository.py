@@ -7,11 +7,18 @@ from src.app.database.models import Role, User
 
 class RoleRepository(BaseRepository):
     model = Role
-    
-    async def get_user_role(self, user_id: UUID):
+
+    async def get_teacher_role(self):
         result = await self.session.execute(
-            select(Role.name)
-            .join(Role.users)
-            .where(User.id == user_id)
+            select(self.model).where(self.model.name == "TEACHER")
         )
+
         return result.scalar_one_or_none()
+    
+    async def get_student_role(self):
+        result = await self.session.execute(
+            select(self.model).where(self.model.name == "STUDENT")
+        )
+
+        return result.scalar_one_or_none()
+    

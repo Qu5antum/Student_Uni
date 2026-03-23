@@ -8,7 +8,7 @@ from src.app.api.dependencies.dependency import get_current_user
 from src.app.api.dependencies.check_role import require_roles
 from src.app.api.schemas.user import TeacherCreate, TeacherOut, StudentOut
 from src.app.api.schemas.course import TeacherCoursesOut, CourseOut
-from src.app.service.course_service import CourseService
+from src.app.service.course_service import CourseService, TeacherCourseService
 from src.app.service.teacher_service import TeacherService
 
 teacher_route = APIRouter(
@@ -57,7 +57,7 @@ async def add_course_for_teacher(
     teacher_id: UUID,
     session: AsyncSession = Depends(get_session)
 ):
-    course_service = CourseService(session=session)
+    course_service = TeacherCourseService(session=session)
     return await course_service.add_course_for_teacher_by_teacher_id(teacher_id=teacher_id, course_ids=course_ids)
 
 
@@ -66,7 +66,7 @@ async def get_teachers_courses(
     teacher_id: UUID,
     session: AsyncSession = Depends(get_session)
 ):
-    course_service = CourseService(session=session)
+    course_service = TeacherCourseService(session=session)
     return await course_service.get_courses_of_teacher_by_id(teacher_id=teacher_id)
 
 
@@ -75,7 +75,7 @@ async def delete_courses_of_teacher_in_section(
     section_id: int,
     session: AsyncSession = Depends(get_session)
 ):
-    course_service = CourseService(session=session)
+    course_service = TeacherCourseService(session=session)
     return await course_service.delete_courses_of_teacher_by_id(section_id=section_id)
 
 
@@ -85,7 +85,7 @@ async def delete_courses_of_teacher_in_section_by_teacher_id(
     teacher_id: UUID,
     session: AsyncSession = Depends(get_session)
 ):
-    course_service = CourseService(session=session)
+    course_service = TeacherCourseService(session=session)
     return await course_service.delete_courses_of_teacher_by_id(section_id=section_id, teacher_id=teacher_id)
 
 
@@ -96,7 +96,7 @@ async def delete_specific_course_of_teacher_in_section_by_teacher_id(
     course_id: int,
     session: AsyncSession = Depends(get_session)
 ):
-    course_service = CourseService(session=session)
+    course_service = TeacherCourseService(session=session)
     return await course_service.delete_courses_of_teacher_by_id(section_id=section_id, teacher_id=teacher_id, course_id=course_id)
 
 

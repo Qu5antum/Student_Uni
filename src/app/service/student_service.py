@@ -6,19 +6,25 @@ from src.app.database.db import AsyncSession
 from src.app.database.models import User, Role, Faculty, Section
 from src.app.api.schemas.user import StudentCreate, StudentCourse
 from src.app.repositories.user_repository import UserRepository
+from src.app.repositories.faculty_repository import FacultyRepository
+from src.app.repositories.section_repository import SectionRepository
+from src.app.repositories.role_repository import RoleRepository
 
 
 class StudentService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.user_repo = UserRepository(session=self.session)
+        self.faculty_repo = FacultyRepository(session=self.session)
+        self.section_repo = SectionRepository(session=self.session)
+        self.role_repo = RoleRepository(session=self.session)
 
     #register new student
     async def add_new_student(
             self, 
             student: StudentCreate
     ):
-        existing_faculty = await self.session.get(Faculty, student.faculty_id)
+        existing_faculty = await self.faculty_repo.find_by_id(id=student.faculty_id)
 
         if not existing_faculty:
             raise HTTPException(
@@ -26,7 +32,7 @@ class StudentService:
                 detail=f"Faculty by this ID: {student.faculty_id} not found."
             )
         
-        existing_section = await self.session.get(Section, student.section_id)
+        existing_section = await self.section_repo.find_by_id(id=student.section_id)
 
         if not existing_section:
             raise HTTPException(
@@ -36,16 +42,11 @@ class StudentService:
 
         if existing_section.faculty_id != student.faculty_id:
             raise HTTPException(
-                status_code=400,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Section does not belong to this faculty."
             )
 
-
-        result = await self.session.execute(
-            select(User).where(User.student_id == student.student_id)
-        )
-
-        existing_student = result.scalar_one_or_none()
+        existing_student = await self.user_repo.get_student_with_student_id(student_id=student.student_id)
 
         if existing_student: 
             raise HTTPException(
@@ -53,9 +54,7 @@ class StudentService:
                 detail="A student with this student ID already exists."
             ) 
         
-        role = await self.session.scalar(
-            select(Role).where(Role.name == "STUDENT") 
-        )
+        role = await self.role_repo.get_student_role()
 
         if not role:
             raise HTTPException(
@@ -81,12 +80,7 @@ class StudentService:
         return {"message: ", "Student Registered successfully."}
 
     async def get_all_students(self):
-        result = await self.session.execute(
-            select(User)
-            .join(User.roles)
-            .where(Role.name == "STUDENT")
-        )
-        students = result.scalars().all()
+        students = await self.user_repo.get_students()
 
         return students
 
@@ -95,13 +89,7 @@ class StudentService:
             user: StudentCourse
     ):
         if user.student_id:
-            result = await self.session.execute(
-                select(User).where(
-                    User.student_id == user.student_id
-                )
-            )
-
-            existing_student = result.scalar_one_or_none()
+            existing_student = await self.user_repo.get_student_with_student_id(student_id=user.student_id)
 
             if not existing_student:
                 raise HTTPException(
@@ -112,14 +100,7 @@ class StudentService:
             return existing_student
         
         elif user.name and user.surname:
-            result = await self.session.execute(
-                select(User).where(
-                    User.name == user.name,
-                    User.surname == user.surname
-                )
-            )
-
-            existing_student= result.scalar_one_or_none()
+            existing_student= await self.user_repo.get_students(name=user.name, surname=user.surname)
 
             if not existing_student:
                 raise HTTPException(
@@ -135,7 +116,7 @@ class StudentService:
             faculty_id: int,
             section_id: int
     ):
-        existing_faculty = await self.session.get(Faculty, faculty_id)
+        existing_faculty = await self.faculty_repo.find_by_id(id=faculty_id)
 
         if not existing_faculty:
             raise HTTPException(
@@ -143,7 +124,7 @@ class StudentService:
                 detail=f"Faculty by this ID: {faculty_id} not found."
             )
         
-        existing_section = await self.session.get(Section, section_id)
+        existing_section = await self.user_repo.find_by_id(id=section_id)
 
         if not existing_section:
             raise HTTPException(
@@ -151,14 +132,13 @@ class StudentService:
                 detail=f"Section by this ID: {section_id} not found."
             )
         
-        result = await self.session.execute(
-            select(User).where(
-                User.faculty_id == faculty_id,
-                User.section_id == section_id
+        if existing_section.faculty_id != faculty_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Section does not belong to this faculty."
             )
-        )
 
-        students = result.scalars().all()
+        students = await self.user_repo.get_students(faculty_id=faculty_id, section_id=section_id)
 
         return students  
 
@@ -167,18 +147,12 @@ class StudentService:
             self,
             student_id: str
     ):
-        result = await self.session.execute(
-            select(User).where(
-                User.student_id == student_id
-            )
-        )
-
-        existing_student = result.scalar_one_or_none()
+        existing_student = await self.user_repo.get_student_with_student_id(student_id=student_id)
 
         if not existing_student:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Student by student ID not found."
+                detail="Student with this student ID not found."
             )
         
         await self.session.delete(existing_student)
