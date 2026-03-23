@@ -448,33 +448,31 @@ class StudentCourseService:
 class TeacherCourseService:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.user_repo = UserRepository(session=self.session)
+        self.section_repo = SectionRepository(session=self.session)
+        self.course_repo = CourseRepository(session=self.session)
     
     async def add_course_for_teacher_by_teacher_id(
             self,
-            teacher_id: int,
+            teacher_id: UUID,
             course_ids: List[int]
     ):
-        result = await self.session.execute(
-            select(User)
-            .where(User.id == teacher_id)
-            .options(selectinload(User.courses))
-        )
-        existing_teacher = result.scalar_one_or_none()
+        existing_teacher = await self.user_repo.get_teacher_with_courses(teacher_id=teacher_id)
 
         if not existing_teacher:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Teacher by this ID {teacher_id} not found."
             )
-        
-        result = await self.session.execute(
-            select(Course)
-            .where(
-                Course.id.in_(course_ids),
-                Course.course_semester == current_semester()
+        semester = current_semester()
+
+        if semester is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Course selection is closed."
             )
-        )
-        courses = result.scalars().all()
+
+        courses = await self.course_repo.get_courses_with_ids_and_semester(course_ids=course_ids, semester=semester)
 
         found_ids = {c.id for c in courses}
         missing_ids = set(course_ids) - found_ids
@@ -485,7 +483,7 @@ class TeacherCourseService:
                 detail=f"Courses not found: {list(missing_ids)}"
             )
         
-        teachers_existing_course = {c.id for c in existing_teacher.courses}
+        teachers_existing_course = {c.id for c in existing_teacher.teaching_courses}
 
         courses_to_add = [
             c for c in courses
@@ -495,7 +493,7 @@ class TeacherCourseService:
         if not courses_to_add:
             return {"detail": "No new courses to add"}
 
-        existing_teacher.courses.extend(courses_to_add)
+        existing_teacher.teaching_courses.extend(courses_to_add)
 
         await self.session.commit()
 
@@ -508,12 +506,7 @@ class TeacherCourseService:
             self,
             teacher_id: UUID
     ):
-        result = await self.session.execute(
-            select(User)
-            .where(User.id == teacher_id)
-            .options(selectinload(User.courses))
-        )
-        existing_teacher = result.scalar_one_or_none()
+        existing_teacher = await self.user_repo.get_teacher_with_courses(teacher_id=teacher_id)
 
         if not existing_teacher:
             raise HTTPException(
@@ -529,7 +522,7 @@ class TeacherCourseService:
             course_id: int | None = None,
             teacher_id: UUID | None = None
     ):
-        section = await self.session.get(Section, section_id)
+        section = await self.section_repo.find_by_id(id=section_id)
 
         if not section:
             raise HTTPException(
@@ -538,35 +531,16 @@ class TeacherCourseService:
             )
         
         if teacher_id is None:
-            result = await self.session.execute(
-                select(User)
-                .join(User.roles)
-                .where(
-                    Role.name == "TEACHER",
-                    User.section_id == section_id
-                )
-                .options(selectinload(User.courses))
-            )
-            teachers = result.scalars().all()
+            teachers = await self.user_repo.get_teachers_with_courses_in_section(section_id=section_id)
     
             for teacher in teachers:
-                teacher.courses.clear()
+                teacher.teaching_courses.clear()
 
             await self.session.commit()
             
             return {"detail": f"Courses of teachers in this section ID: {section_id} deleted."}
         
-        result = await self.session.execute(
-                select(User)
-                .join(User.roles)
-                .where(
-                    User.id == teacher_id,
-                    Role.name == "TEACHER"
-                )
-                .options(selectinload(User.courses))
-            )
-        
-        existing_teacher = result.scalar_one_or_none()
+        existing_teacher = await self.user_repo.get_teacher_with_courses(teacher_id=teacher_id)
 
         if not existing_teacher:
             raise HTTPException(
@@ -576,7 +550,7 @@ class TeacherCourseService:
             
         if course_id is not None:
             course_to_remove = next(
-                (c for c in existing_teacher.courses if c.id == course_id),
+                (c for c in existing_teacher.teaching_courses if c.id == course_id),
                 None
             )
 
@@ -586,16 +560,16 @@ class TeacherCourseService:
                     detail=f"Course {course_id} not found for this teacher."
             )
 
-            existing_teacher.courses.remove(course_to_remove) 
+            existing_teacher.teaching_courses.remove(course_to_remove) 
 
             await self.session.commit()
 
             return {"detail": f"Course with ID: {course_id} removed from teacher."}
         
-        if not existing_teacher.courses:
+        if not existing_teacher.teaching_courses:
             return {"detail": "Teacher has no courses."}
         
-        existing_teacher.courses.clear()
+        existing_teacher.teaching_courses.clear()
 
         await self.session.commit()
 

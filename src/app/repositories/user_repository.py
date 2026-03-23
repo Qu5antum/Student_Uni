@@ -106,6 +106,33 @@ class UserRepository(BaseRepository):
             .options(selectinload(self.model.enrollments).selectinload(Enrollment.course))
         )
         return result.scalars().all()
+    
+    async def get_teacher_with_courses(self, teacher_id: UUID):
+        result = await self.session.execute(
+            select(self.model)
+            .join(self.model.roles)
+            .where(
+                self.model.id == teacher_id,
+                Role.name == "TEACHER"
+            )
+            .options(selectinload(self.model.teaching_courses))
+        )
+
+        return result.scalar_one_or_none()
+    
+    async def get_teachers_with_courses_in_section(self, section_id: int):
+        result = await self.session.execute(
+            select(self.model)
+            .join(self.model.roles)
+            .where(
+                Role.name == "TEACHER",
+                self.model.section_id == section_id
+            )
+            .options(selectinload(self.model.teaching_courses))
+        )
+        return result.scalars().all()
+
+
         
         
 
