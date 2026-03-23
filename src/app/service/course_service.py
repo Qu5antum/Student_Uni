@@ -49,10 +49,10 @@ class CourseService:
         try:
             existing_sections = await self.section_repo.find_with_ids(ids=course.section_ids)
 
-            if not existing_sections:
+            if len(course.section_ids) != len(existing_sections):
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Sections not found."
+                    detail="Some Sections not found."
                 )
 
             existing_course = await self.course_repo.get_course_by_code(course_code=course.course_code)

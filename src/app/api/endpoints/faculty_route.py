@@ -18,7 +18,7 @@ async def new_faculty(
     session: AsyncSession = Depends(get_session)
 ):
     faculty_service = FacultyService(session=session)
-    return await faculty_service.add_new_faculty(session=session, faculty=faculty)
+    return await faculty_service.add_new_faculty(faculty=faculty)
 
 
 @faculty_route.get("/admin", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)

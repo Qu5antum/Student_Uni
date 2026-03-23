@@ -38,6 +38,8 @@ class AuthenticationService:
             password=hash_password(admin.password)
         )
 
+        new_admin.roles.append(role)
+
         try:
             self.session.add(new_admin)
             await self.session.commit()
@@ -46,7 +48,7 @@ class AuthenticationService:
             await self.session.rollback()
             raise
         
-        return {"message": "Student Registered successfully."} 
+        return {"message": "Registered successfully."} 
         
     # authenticate user 
     async def auth_user(

@@ -13,7 +13,7 @@ class FacultyService:
         self.faculty_repo = FacultyRepository(session=self.session)
 
     async def add_new_faculty(self, faculty: FacultyCreate):
-        existing_faculty = self.faculty_repo.get_by_faculty_name(name=faculty.name)
+        existing_faculty = await self.faculty_repo.get_by_faculty_name(name=faculty.name)
 
         if existing_faculty:
             raise HTTPException(
