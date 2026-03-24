@@ -234,7 +234,7 @@ class StudentCourseService:
                 detail="Course selection is closed."
             )
         
-        current_student = await self.user_repo.get_student_with_courses(student_id=student.id)
+        current_student = await self.user_repo.get_student_with_courses(student_id=student.student_id)
         
         student_max_option = await optional_course_max_select(student_class=current_student.class_, semester=semester)
 
@@ -353,7 +353,7 @@ class StudentCourseService:
             self,
             student: User
     ):
-        user = await self.user_repo.get_student_with_courses(student_id=student.id)
+        user = await self.user_repo.get_student_with_courses(student_id=student.student_id)
 
         return user.enrollments
        
@@ -390,7 +390,7 @@ class StudentCourseService:
 
             return {"detail": f"Courses of students in this section ID: {section_id} deleted."}
         
-        existing_student = await self.user_repo.find_by_id(id=student_id)
+        existing_student = await self.user_repo.get_user(user_id=student_id)
 
         if not existing_student:
             raise HTTPException(
@@ -435,7 +435,7 @@ class StudentCourseService:
                 detail=f"Student by this student ID : {student_id} not found."
             )
         
-        return existing_student
+        return existing_student.enrollments
     
     async def numbers_of_student_of_current_course(
             self,

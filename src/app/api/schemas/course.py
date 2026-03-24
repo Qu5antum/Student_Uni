@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, computed_field
 from typing import List
 from uuid import UUID
+
+from .section import SectoinOut
 
 class CourseCreate(BaseModel):
     name: str = Field(min_length=2, max_length=50)
@@ -27,7 +29,7 @@ class CourseOut(BaseModel):
     course_semester: str
     course_class: int
     is_optional: bool
-    section_ids: List[int]
+    sections: List[SectoinOut]
 
     class Config:
         from_attributes = True
@@ -52,8 +54,8 @@ class TeacherCoursesOut(BaseModel):
     name: str
     surname: str
     email: EmailStr
-    faculty_id: int
-    courses: List[CourseOut]
+    faculty_id: int 
+    teaching_courses: List[CourseOut]
 
     class Config:
         from_attributes = True

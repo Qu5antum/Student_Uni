@@ -157,8 +157,8 @@ class Enrollment(Base):
     grade: Mapped[float | None] = mapped_column(nullable=True)
     attempts: Mapped[int] = mapped_column(
         Integer,
-        server_default="1",
-        nullable=False
+        nullable=False,
+        server_default="0"
     )
     assigned_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

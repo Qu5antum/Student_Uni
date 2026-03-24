@@ -124,7 +124,7 @@ class StudentService:
                 detail=f"Faculty by this ID: {faculty_id} not found."
             )
         
-        existing_section = await self.user_repo.find_by_id(id=section_id)
+        existing_section = await self.section_repo.find_by_id(id=section_id)
 
         if not existing_section:
             raise HTTPException(

@@ -133,7 +133,7 @@ async def delete_student_courses_by_student_id(
     return await course_service.delete_student_courses_by_id(section_id=section_id, student_id=student_id, course_id=course_id)
 
 
-@student_route.get("/admin/student/{student_id}", response_model=StudentCoursesOut, dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
+@student_route.get("/admin/student/{student_id}", dependencies=[Depends(require_roles(["ADMIN"]))], status_code=status.HTTP_200_OK)
 async def get_student_and_courses(
     student_id: str,
     session: AsyncSession = Depends(get_session)

@@ -78,7 +78,7 @@ class UserRepository(BaseRepository):
 
         return user
     
-    async def get_student_with_courses(self, student_id: str):
+    async def get_student_with_courses(self, student_id: UUID):
         result = await self.session.execute(
             select(self.model)
             .where(self.model.student_id == student_id)
@@ -122,7 +122,7 @@ class UserRepository(BaseRepository):
                 self.model.id == teacher_id,
                 Role.name == "TEACHER"
             )
-            .options(selectinload(self.model.teaching_courses))
+            .options(selectinload(self.model.teaching_courses).selectinload(Course.sections))
         )
 
         return result.scalar_one_or_none()
