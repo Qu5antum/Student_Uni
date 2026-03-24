@@ -8,7 +8,7 @@ from src.app.api.dependencies.dependency import get_current_user
 from src.app.api.dependencies.check_role import require_roles
 from src.app.api.schemas.user import TeacherCreate, TeacherOut, StudentOut
 from src.app.api.schemas.course import TeacherCoursesOut, CourseOut
-from src.app.api.schemas.enrollment import ExamType
+from src.app.api.schemas.enrollment import ExamType, EnrollmentOut
 from src.app.service.course_service import CourseService, TeacherCourseService
 from src.app.service.teacher_service import TeacherService
 
@@ -141,8 +141,25 @@ async def add_grade_for_student(
     return await teacher_service.add_grade_for_student(course_id=course_id, student_id=student_id, grade=grade, exam_type=exam_type, teacher=user)
 
 
+@teacher_route.get("/course/{course_id}/student/{student_id}/get_grades", response_model=EnrollmentOut, dependencies=[Depends(require_roles(["TEACHER"]))], status_code=status.HTTP_200_OK)
+async def get_student_grades(
+    course_id: int,
+    student_id: str | None = None,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    teacher_service = TeacherService(session=session)
+    return await teacher_service.get_student_grades(course_id=course_id, student_id=student_id, teacher=user)
 
 
+@teacher_route.get("/course/{course_id}/student/get_grades", response_model=List[EnrollmentOut], dependencies=[Depends(require_roles(["TEACHER"]))], status_code=status.HTTP_200_OK)
+async def get_student_grades(
+    course_id: int,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    teacher_service = TeacherService(session=session)
+    return await teacher_service.get_student_grades(course_id=course_id, teacher=user)
 
 
 

@@ -37,14 +37,17 @@ class EnrollmentRepository(BaseRepository):
 
         return result.scalars().all()
     
-    async def get_enrollment_with_student_id_course_id(self, student_id: str, course_id: int):
-        result = await self.session.execute(
+    async def get_enrollment_with_student_id_course_id(self, course_id: int, student_id: str | None = None):
+        query = (
             select(self.model)
-            .where(
-                self.model.course_id == course_id,
-                User.student_id == student_id
-            )
+            .where(self.model.course_id == course_id)
             .options(selectinload(self.model.student))
         )
 
-        return result.scalar_one_or_none()
+        if student_id:
+            query = query.where(User.student_id == student_id)
+            result = await self.session.execute(query)
+            return result.scalar_one_or_none()
+
+        result = await self.session.execute(query)
+        return result.scalars().all()

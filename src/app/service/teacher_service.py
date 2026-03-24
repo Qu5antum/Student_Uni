@@ -112,14 +112,6 @@ class TeacherService:
             course_id: int,
             teacher: User
     ):
-        existing_course = await self.course_repo.find_by_id(id=course_id)
-
-        if not existing_course:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Course with ID: {course_id} not found."
-            )
-        
         teacher_exists = await self.user_repo.get_teacher(teacher_id=teacher.id, course_id=course_id)
 
         if not teacher_exists:
@@ -130,7 +122,7 @@ class TeacherService:
 
         students = await self.user_repo.get_students(course_id=course_id)
 
-        return students.enrollments
+        return students
     
     async def get_teacher_profile(self, user: User):
         existing_teacher = await self.user_repo.get_teacher_profile(user_id=user.id)
@@ -180,9 +172,35 @@ class TeacherService:
         self.enrollment_repo.session.add(student_enrollment)
         await self.session.commit()
         await self.session.refresh(student_enrollment)
-
         
         return student_enrollment.midterm_grade
+    
+    async def get_student_grades(
+            self,
+            teacher: User,
+            course_id: int,
+            student_id: str | None = None,
+    ):
+        teacher_course = await self.user_repo.check_teacher_course(teacher_id=teacher.id, course_id=course_id)
+
+        if not teacher_course:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This course not belong to the teacher."
+            )
+        if not student_id: 
+            student_enrollment = await self.enrollment_repo.get_enrollment_with_student_id_course_id(course_id=course_id)
+        elif student_id:
+            student_enrollment = await self.enrollment_repo.get_enrollment_with_student_id_course_id(course_id=course_id, student_id=student_id)
+
+        if not student_enrollment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Enrollment not found for student {student_id} and course {course_id}."
+            )
+        
+        return student_enrollment
+        
         
 
 
