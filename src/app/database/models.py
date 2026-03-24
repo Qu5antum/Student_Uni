@@ -154,7 +154,9 @@ class Enrollment(Base):
     __tablename__ = "enrollments"
 
     id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    grade: Mapped[float | None] = mapped_column(nullable=True)
+    midterm_grade: Mapped[float] = mapped_column(nullable=True)
+    final_grade: Mapped[float] = mapped_column(nullable=True)
+    grade: Mapped[float] = mapped_column(nullable=True)
     attempts: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
@@ -183,4 +185,15 @@ class Enrollment(Base):
     __table_args__ = (
         sa.UniqueConstraint("student_id", "course_id", name="uq_student_course"),
     )
+
+    def calculate_final_grade(self, midterm_weight: float = 0.4, final_weight: float = 0.6):
+        if self.midterm_grade is None and self.final_grade is None:
+            self.grade = None
+        elif self.midterm_grade is None:
+            self.grade = self.final_grade
+        elif self.final_grade is None:
+            self.grade = self.midterm_grade
+        else:
+            self.grade = self.midterm_grade * midterm_weight + self.final_grade * final_weight
+        return self.grade
 

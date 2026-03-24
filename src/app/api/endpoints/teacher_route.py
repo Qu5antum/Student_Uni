@@ -8,6 +8,7 @@ from src.app.api.dependencies.dependency import get_current_user
 from src.app.api.dependencies.check_role import require_roles
 from src.app.api.schemas.user import TeacherCreate, TeacherOut, StudentOut
 from src.app.api.schemas.course import TeacherCoursesOut, CourseOut
+from src.app.api.schemas.enrollment import ExamType
 from src.app.service.course_service import CourseService, TeacherCourseService
 from src.app.service.teacher_service import TeacherService
 
@@ -125,6 +126,19 @@ async def teacher_profile(
 ):
     teacher_service = TeacherService(session=session)
     return await teacher_service.get_teacher_profile(user=user)
+
+
+@teacher_route.post("/course/{course_id}/student/{student_id}/add_grade", dependencies=[Depends(require_roles(["TEACHER"]))], status_code=status.HTTP_200_OK)
+async def add_grade_for_student(
+    course_id: int,
+    student_id: str,
+    grade: float,
+    exam_type: ExamType,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    teacher_service = TeacherService(session=session)
+    return await teacher_service.add_grade_for_student(course_id=course_id, student_id=student_id, grade=grade, exam_type=exam_type, teacher=user)
 
 
 

@@ -215,7 +215,15 @@ class UserRepository(BaseRepository):
         )
 
         return result.scalars().all()
+    
+    async def check_teacher_course(self, teacher_id: UUID, course_id: int):
+        result = await self.session.execute(
+            select(self.model)
+            .join(self.model.teaching_courses)
+            .where(
+                self.model.id == teacher_id,
+                Course.id == course_id
+            )
+        )
 
-        
-        
-
+        return result.scalar_one_or_none()

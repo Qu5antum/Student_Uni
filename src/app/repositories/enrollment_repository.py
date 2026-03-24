@@ -1,8 +1,9 @@
 from sqlalchemy import select, delete
+from sqlalchemy.orm import selectinload
 from uuid import UUID
 from typing import List
 
-from src.app.database.models import Enrollment
+from src.app.database.models import Enrollment, User
 from .base_repository import BaseRepository
 
 
@@ -35,3 +36,15 @@ class EnrollmentRepository(BaseRepository):
         )
 
         return result.scalars().all()
+    
+    async def get_enrollment_with_student_id_course_id(self, student_id: str, course_id: int):
+        result = await self.session.execute(
+            select(self.model)
+            .where(
+                self.model.course_id == course_id,
+                User.student_id == student_id
+            )
+            .options(selectinload(self.model.student))
+        )
+
+        return result.scalar_one_or_none()

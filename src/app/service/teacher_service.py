@@ -7,10 +7,12 @@ from src.app.database.db import AsyncSession
 from src.app.database.models import User, Role, Course, Faculty
 from src.app.security.security_context import hash_password
 from src.app.api.schemas.user import TeacherCreate
+from src.app.api.schemas.enrollment import ExamType
 from src.app.repositories.user_repository import UserRepository
 from src.app.repositories.role_repository import RoleRepository
 from src.app.repositories.faculty_repository import FacultyRepository
 from src.app.repositories.course_repository import CourseRepository
+from src.app.repositories.enrollment_repository import EnrollmentRepository
 
 
 class TeacherService:
@@ -20,6 +22,7 @@ class TeacherService:
         self.role_repo = RoleRepository(session=self.session)
         self.faculty_repo = FacultyRepository(session=self.session)
         self.course_repo = CourseRepository(session=self.session)
+        self.enrollment_repo = EnrollmentRepository(session=self.session)
 
     #register new teacher
     async def add_new_teacher(
@@ -127,7 +130,7 @@ class TeacherService:
 
         students = await self.user_repo.get_students(course_id=course_id)
 
-        return students
+        return students.enrollments
     
     async def get_teacher_profile(self, user: User):
         existing_teacher = await self.user_repo.get_teacher_profile(user_id=user.id)
@@ -139,6 +142,48 @@ class TeacherService:
             )
         
         return existing_teacher
+    
+    async def add_grade_for_student(
+            self,
+            grade: float,
+            course_id: int,
+            student_id: str,
+            exam_type: ExamType,
+            teacher: User
+    ):
+        teacher_course = await self.user_repo.check_teacher_course(teacher_id=teacher.id, course_id=course_id)
+
+        if not teacher_course:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This course not belong to the teacher."
+            )
+        
+        student_enrollment = await self.enrollment_repo.get_enrollment_with_student_id_course_id(course_id=course_id, student_id=student_id)
+
+        if not student_enrollment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Enrollment not found for student {student_id} and course {course_id}."
+            )
+
+        if exam_type == ExamType.MIDTERM:
+            student_enrollment.midterm_grade = grade
+        elif exam_type == ExamType.FINAL:
+            student_enrollment.final_grade = grade
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="exam_type must be either (midterm) or (final)."
+            )
+        
+        self.enrollment_repo.session.add(student_enrollment)
+        await self.session.commit()
+        await self.session.refresh(student_enrollment)
+
+        
+        return student_enrollment.midterm_grade
+        
 
 
         
