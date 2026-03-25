@@ -10,6 +10,7 @@ import logging
 
 from src.app.database.db import AsyncSession
 from src.app.api.schemas.course import CourseCreate, CourseUpdate
+from src.app.api.schemas.enrollment import EnrollmentStatus
 from src.app.database.models import Course, Section, User, Role, Enrollment
 from src.app.repositories.section_repository import SectionRepository
 from src.app.repositories.course_repository import CourseRepository
@@ -240,24 +241,49 @@ class StudentCourseService:
         course = await self.course_repo.get_course_with_id_and_semester(
             course_id=selected_course_id, 
             semester=semester, 
+            student_class=student.class_
         )
 
         if not course:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Course not found in this semester."
+                detail="Course not found in this semester or wrong class."
             )
         
-        student_course = await self.user_repo.check_student_course_with_course_id(
-            course_id=selected_course_id, 
+        enrollment = await self.enrollment_repo.check_student_course_with_course_id(
+            course_id=selected_course_id,
             student_id=student.id
         )
 
-        if student_course:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Student already have this course."
+        if course.is_optional:
+            student_optional_courses = await self.course_repo.get_optional_courses_of_student(
+                student_id=student.id
             )
+
+            if len(student_optional_courses) >= max_option:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"You can select only {max_option} optional courses."
+                )
+        
+        if enrollment:
+            if enrollment.status == EnrollmentStatus.COMPLETED:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Course already completed."
+                )
+            elif enrollment.status == EnrollmentStatus.FAILED:
+                enrollment.attempts += 1
+                enrollment.status = EnrollmentStatus.IN_PROGRESS
+                enrollment.midterm_grade = None
+                enrollment.final_grade = None
+                enrollment.grade = None
+
+                self.session.add(enrollment)
+                await self.session.commit()
+                await self.session.refresh(enrollment)
+
+                return {"detail": "Course retake started."}
         
         new_enrollment = Enrollment(
             course_id = selected_course_id,

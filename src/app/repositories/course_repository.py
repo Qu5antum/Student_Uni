@@ -65,6 +65,7 @@ class CourseRepository(BaseRepository):
             .where(
                 self.model.id == course_id,
                 self.model.course_semester == semester,
+                self.model.course_class >= student_class
             )
         )
 
@@ -83,7 +84,6 @@ class CourseRepository(BaseRepository):
         return result.scalars().all()
 
 
-    
     async def failed_courses_of_student(self, student_id: UUID):
         result = await self.session.execute(
             select(self.model)

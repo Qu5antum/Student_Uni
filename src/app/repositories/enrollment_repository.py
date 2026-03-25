@@ -4,6 +4,7 @@ from uuid import UUID
 from typing import List
 
 from src.app.database.models import Enrollment, User
+from src.app.api.schemas.enrollment import EnrollmentStatus
 from .base_repository import BaseRepository
 
 
@@ -51,3 +52,19 @@ class EnrollmentRepository(BaseRepository):
 
         result = await self.session.execute(query)
         return result.scalars().all()
+    
+
+    async def check_student_course_with_course_id(self, course_id: int, student_id: UUID):
+        """
+        Check if student have this course with course id.
+        """
+        result = await self.session.execute(
+            select(self.model)
+            .where(
+                self.model.student_id == student_id,
+                self.model.course_id == course_id
+            )
+        )
+
+        return result.scalar_one_or_none()
+    
