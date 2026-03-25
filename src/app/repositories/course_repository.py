@@ -1,9 +1,11 @@
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List
+from uuid import UUID
 
-from src.app.database.models import Course, Section
+from src.app.database.models import Course, Section, Enrollment
 from .base_repository import BaseRepository
+from src.app.api.schemas.enrollment import EnrollmentStatus
 
 
 class CourseRepository(BaseRepository):
@@ -52,6 +54,43 @@ class CourseRepository(BaseRepository):
             .where(
                 self.model.id.in_(course_ids),
                 self.model.course_semester == semester
+            )
+        )
+
+        return result.scalars().all()
+    
+    async def get_course_with_id_and_semester(self, course_id: int, semester: str, student_class: int):
+        result = await self.session.execute(
+            select(self.model)
+            .where(
+                self.model.id == course_id,
+                self.model.course_semester == semester,
+            )
+        )
+
+        return result.scalar_one_or_none()
+    
+    async def get_optional_courses_of_student(self, student_id: UUID):
+        result = await self.session.execute(
+            select(self.model.id)
+            .join(self.model.enrollments)
+            .where(
+                Enrollment.student_id == student_id,
+                self.model.is_optional == "True"
+            )
+        )
+
+        return result.scalars().all()
+
+
+    
+    async def failed_courses_of_student(self, student_id: UUID):
+        result = await self.session.execute(
+            select(self.model)
+            .join(self.model.enrollments)
+            .where(
+                Enrollment.status == EnrollmentStatus.FAILED,
+                Enrollment.student_id == student_id
             )
         )
 

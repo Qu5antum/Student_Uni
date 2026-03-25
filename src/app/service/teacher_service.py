@@ -7,7 +7,7 @@ from src.app.database.db import AsyncSession
 from src.app.database.models import User, Role, Course, Faculty
 from src.app.security.security_context import hash_password
 from src.app.api.schemas.user import TeacherCreate
-from src.app.api.schemas.enrollment import ExamType
+from src.app.api.schemas.enrollment import ExamType, EnrollmentStatus
 from src.app.repositories.user_repository import UserRepository
 from src.app.repositories.role_repository import RoleRepository
 from src.app.repositories.faculty_repository import FacultyRepository
@@ -163,17 +163,15 @@ class TeacherService:
             student_enrollment.midterm_grade = grade
         elif exam_type == ExamType.FINAL:
             student_enrollment.final_grade = grade
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="exam_type must be either (midterm) or (final)."
-            )
         
-        self.enrollment_repo.session.add(student_enrollment)
+        student_enrollment.calculate_final_grade()  
+        student_enrollment.update_status()
+  
+        self.session.add(student_enrollment)
         await self.session.commit()
         await self.session.refresh(student_enrollment)
         
-        return student_enrollment.midterm_grade
+        return student_enrollment.grade
     
     async def get_student_grades(
             self,

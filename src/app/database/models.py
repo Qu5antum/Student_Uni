@@ -196,4 +196,14 @@ class Enrollment(Base):
         else:
             self.grade = self.midterm_grade * midterm_weight + self.final_grade * final_weight
         return self.grade
+    
+    def update_status(self):
+        if self.midterm_grade is not None and self.final_grade is not None:
+            if self.grade is None:
+                return
+        
+        if self.grade < 50:
+            self.status = EnrollmentStatus.FAILED
+        else:
+            self.status = EnrollmentStatus.COMPLETED
 

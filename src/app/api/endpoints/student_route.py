@@ -78,6 +78,14 @@ async def courses_for_student(
     course_service = StudentCourseService(session=session)
     return await course_service.get_course_for_student(student=user)
 
+@student_route.get("/failed_courses", dependencies=[Depends(require_roles(["STUDENT"]))], status_code=status.HTTP_200_OK)
+async def get_failed_courses_of_student(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    student_course_service = StudentCourseService(session=session)
+    return await student_course_service.get_failed_courses_of_student(student=user)
+
 @student_route.post("/student_course_select", dependencies=[Depends(require_roles(["STUDENT", "ADMIN"]))], status_code=status.HTTP_200_OK)
 async def select_course(
     selected_course_ids: List[int],

@@ -153,7 +153,7 @@ async def get_student_grades(
 
 
 @teacher_route.get("/course/{course_id}/student/get_grades", response_model=List[EnrollmentOut], dependencies=[Depends(require_roles(["TEACHER"]))], status_code=status.HTTP_200_OK)
-async def get_student_grades(
+async def get_students_grades(
     course_id: int,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)

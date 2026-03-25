@@ -227,3 +227,19 @@ class UserRepository(BaseRepository):
         )
 
         return result.scalar_one_or_none()
+    
+
+    async def check_student_course_with_course_id(self, course_id: int, student_id: UUID):
+        """
+        Check if student have this course with course id.
+        """
+        result = await self.session.execute(
+            select(self.model.id)
+            .join(self.model.enrollments)
+            .where(
+                Enrollment.student_id == student_id,
+                Enrollment.course_id == course_id
+            )
+        )
+
+        return result.scalar_one_or_none()

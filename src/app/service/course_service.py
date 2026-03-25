@@ -220,6 +220,57 @@ class StudentCourseService:
 
         return courses
     
+
+    async def get_failed_courses_of_student(
+            self, 
+            student: User,
+    ):
+        failed_courses = await self.course_repo.failed_courses_of_student(student_id=student.id)
+
+        return failed_courses
+    
+    async def select_course_with_course_id(
+            self,
+            selected_course_id: int,
+            student: User
+    ):
+        semester = current_semester()
+        max_option = optional_course_max_select(student_class=student.class_, semester=semester)
+
+        course = await self.course_repo.get_course_with_id_and_semester(
+            course_id=selected_course_id, 
+            semester=semester, 
+        )
+
+        if not course:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Course not found in this semester."
+            )
+        
+        student_course = await self.user_repo.check_student_course_with_course_id(
+            course_id=selected_course_id, 
+            student_id=student.id
+        )
+
+        if student_course:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Student already have this course."
+            )
+        
+        new_enrollment = Enrollment(
+            course_id = selected_course_id,
+            student_id = student.id
+        )
+
+        self.session.add(new_enrollment)
+        self.session.commit()
+        self.session.refresh(new_enrollment)
+
+        return {"detail": "Course successfully selected."}
+
+
     async def course_selection_for_student(
             self,
             student_selected_course_ids: List[int],
@@ -292,7 +343,8 @@ class StudentCourseService:
         return {
             "message": "Courses successfully selected.",
             "courses": course_info
-        }    
+        } 
+
     
     async def custom_course_add_for_student(
             self,
